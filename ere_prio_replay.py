@@ -1,6 +1,6 @@
 import random
 import numpy as np
-
+from collections import deque
 class PrioritizedReplay(object):
     """
     Proportional Prioritization

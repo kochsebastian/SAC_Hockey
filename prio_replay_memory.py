@@ -44,7 +44,7 @@ class PrioritizedReplay(object):
         self.priorities[self.pos] = max_prio
         self.pos = (self.pos + 1) % self.capacity # lets the pos circle in the ranges of capacity if pos+1 > cap --> new posi = 0
     
-    def sample(self, batch_size):
+    def sample(self, batch_size, c_k=None):
         N = len(self.buffer)
         if N == self.capacity:
             prios = self.priorities
