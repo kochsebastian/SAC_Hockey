@@ -4,8 +4,8 @@ import torch.nn.functional as F
 from torch.optim import Adam
 from utils import soft_update, hard_update
 from model import PolicyNetwork, SoftQNetwork
+# from ere_prio_replay import PrioritizedReplay
 from prio_replay_memory import PrioritizedReplay
-
 
 class SAC(object):
     def __init__(self, num_inputs, action_space, args):
@@ -57,10 +57,10 @@ class SAC(object):
         prios = abs(((td_error1 + td_error2)/2.0 + 1e-5).squeeze())
         return qf1_loss, qf2_loss, prios
 
-    def update_parameters(self, memory, batch_size, updates):
+    def update_parameters(self, memory, batch_size, updates, c_k=None):
         # Sample a batch from memory
         if isinstance(memory,PrioritizedReplay):
-            state_batch, action_batch, reward_batch, next_state_batch, mask_batch, idxs, weights_batch = memory.sample(batch_size=batch_size)
+            state_batch, action_batch, reward_batch, next_state_batch, mask_batch, idxs, weights_batch = memory.sample(batch_size=batch_size,c_k=c_k)
         else:
             state_batch, action_batch, reward_batch, next_state_batch, mask_batch = memory.sample(batch_size=batch_size)
 
