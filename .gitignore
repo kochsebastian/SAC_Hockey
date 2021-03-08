@@ -1,0 +1,8 @@
+./hockey-runs/*
+./hockey-runs-copy/*
+./hockey-models/*
+./runs/*
+./models/*
+model/*
+.vscode/*
+__pycache__/*
