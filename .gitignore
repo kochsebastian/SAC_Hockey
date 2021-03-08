@@ -6,3 +6,8 @@
 model/*
 .vscode/*
 __pycache__/*
+runs/
+hockey-runs/
+hockey-models/
+hockey-runs-copy/
+hockey-runs-attack/
