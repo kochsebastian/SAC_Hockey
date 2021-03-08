@@ -21,7 +21,7 @@ parser.add_argument('--policy', default="Gaussian",
                     help='Policy Type: Gaussian | Deterministic (default: Gaussian)')
 parser.add_argument('--eval', type=bool, default=True,
                     help='Evaluates a policy a policy every 10 episode (default: True)')
-parser.add_argument('--gamma', type=float, default=0.995, metavar='G',
+parser.add_argument('--gamma', type=float, default=0.95, metavar='G',
                     help='discount factor for reward (default: 0.99)')
 parser.add_argument('--tau', type=float, default=0.005, metavar='G',
                     help='target smoothing coefficient(τ) (default: 0.005)')
@@ -34,11 +34,11 @@ parser.add_argument('--automatic_entropy_tuning', type=bool, default=True, metav
                     help='Automaically adjust α (default: False)')
 parser.add_argument('--seed', type=int, default=123456, metavar='N',
                     help='random seed (default: 123456)')
-parser.add_argument('--batch_size', type=int, default=2, metavar='N',
+parser.add_argument('--batch_size', type=int, default=4, metavar='N',
                     help='batch size (default: 256)')
 parser.add_argument('--num_steps', type=int, default=1000001, metavar='N',
                     help='maximum number of steps (default: 1000000)')
-parser.add_argument('--hidden_size', type=int, default=64, metavar='N',
+parser.add_argument('--hidden_size', type=int, default=256, metavar='N',
                     help='hidden size (default: 256)')
 parser.add_argument('--updates_per_step', type=int, default=1, metavar='N',
                     help='model updates per simulator step (default: 1)')
@@ -55,13 +55,17 @@ parser.add_argument('--train', action="store_true",
 args = parser.parse_args()
 
 
-env = h_env.HockeyEnv(mode=h_env.HockeyEnv.TRAIN_SHOOTING)
+env = h_env.HockeyEnv(mode=h_env.HockeyEnv.TRAIN_DEFENSE)
 # Agent
 agent = SAC(env.observation_space.shape[0], env.action_space, args)
+agent.load_model('attack_models/sac_actor_hockey_17100_batch_size-4_gamma-0.95_tau-0.005_lr-0.0003_alpha-0.2_tuning-True_hidden_size-256_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-1000000','attack_models/sac_critic_hockey_17100_batch_size-4_gamma-0.95_tau-0.005_lr-0.0003_alpha-0.2_tuning-True_hidden_size-256_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-1000000')
+
+opponent = SAC(env.observation_space.shape[0], env.action_space, args)
+opponent.load_model('attack_models/sac_actor_hockey_17100_batch_size-4_gamma-0.95_tau-0.005_lr-0.0003_alpha-0.2_tuning-True_hidden_size-256_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-1000000','attack_models/sac_critic_hockey_17100_batch_size-4_gamma-0.95_tau-0.005_lr-0.0003_alpha-0.2_tuning-True_hidden_size-256_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-1000000')
 
 time_ = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 #Tesnorboard
-writer = SummaryWriter(f"hockey-runs/{time_}_batch_size-{args.batch_size}_gamma-{args.gamma}_tau-{args.tau}_lr-{args.lr}_alpha-{args.alpha}_tuning-{args.automatic_entropy_tuning}_hidden_size-{args.hidden_size}_updatesStep-{args.updates_per_step}_startSteps-{args.start_steps}_targetIntervall-{args.target_update_interval}_replaysize-{args.replay_size}")
+writer = SummaryWriter(f"hockey-runs-defence/{time_}_batch_size-{args.batch_size}_gamma-{args.gamma}_tau-{args.tau}_lr-{args.lr}_alpha-{args.alpha}_tuning-{args.automatic_entropy_tuning}_hidden_size-{args.hidden_size}_updatesStep-{args.updates_per_step}_startSteps-{args.start_steps}_targetIntervall-{args.target_update_interval}_replaysize-{args.replay_size}")
 
 # Memory
 # memory = PrioritizedReplay(args.replay_size)
@@ -102,9 +106,11 @@ for i_episode in itertools.count(1):
                 writer.add_scalar('entropy_temprature/alpha', alpha, updates)
                 updates += 1
 
-        a2 = [10,0.,0,0] 
-        next_state, reward, done, _ = env.step(np.hstack([action[0:4],a2])) 
+        # a2 = [10,0.,0,0] 
         obs_agent2 = env.obs_agent_two()
+        a2 = opponent.select_action(obs_agent2, evaluate=True)
+        next_state, reward, done, _ = env.step(np.hstack([action[0:4],a2[0:4]])) 
+        
         # env.render()
         episode_steps += 1
         total_numsteps += 1
@@ -128,8 +134,6 @@ for i_episode in itertools.count(1):
     print("Episode: {}, total numsteps: {}, episode steps: {}, reward: {}".format(i_episode, total_numsteps, episode_steps, round(episode_reward, 2)))
 
     if i_episode % 10 == 0 and args.eval is True:
-        if i_episode%100==0:
-            agent.save_model( "hockey-models", "hockey", suffix=str(i_episode)+f"_batch_size-{args.batch_size}_gamma-{args.gamma}_tau-{args.tau}_lr-{args.lr}_alpha-{args.alpha}_tuning-{args.automatic_entropy_tuning}_hidden_size-{args.hidden_size}_updatesStep-{args.updates_per_step}_startSteps-{args.start_steps}_targetIntervall-{args.target_update_interval}_replaysize-{args.replay_size}")
         avg_reward = 0.
         episodes = 5
         for _  in range(episodes):
@@ -139,8 +143,9 @@ for i_episode in itertools.count(1):
             while not done:
                 
                 action = agent.select_action(state, evaluate=True)
-                a2 = [10,0.,0,0] 
-                next_state, reward, done, _ = env.step(np.hstack([action[0:4],a2])) 
+                obs_agent2 = env.obs_agent_two()
+                a2 = opponent.select_action(obs_agent2, evaluate=True)
+                next_state, reward, done, _ = env.step(np.hstack([action[0:4],a2[0:4]])) 
                 # env.render()
                 episode_reward += reward
 
@@ -149,7 +154,10 @@ for i_episode in itertools.count(1):
             avg_reward += episode_reward
         avg_reward /= episodes
 
-
+        if i_episode%100==0:
+            time_ = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+            agent.save_model( "hockey-models-defence", "hockey", suffix=f"reward-{avg_reward}_episode-"+str(i_episode)+f"_batch_size-{args.batch_size}_gamma-{args.gamma}_tau-{args.tau}_lr-{args.lr}_alpha-{args.alpha}_tuning-{args.automatic_entropy_tuning}_hidden_size-{args.hidden_size}_updatesStep-{args.updates_per_step}_startSteps-{args.start_steps}_targetIntervall-{args.target_update_interval}_replaysize-{args.replay_size}_t-{time_}")
+        
         writer.add_scalar('avg_reward/test', avg_reward, i_episode)
 
         print("----------------------------------------")
