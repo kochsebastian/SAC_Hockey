@@ -13,6 +13,7 @@ from sac_better import SAC
 from torch.utils.tensorboard import SummaryWriter
 # from prio_replay_memory import PrioritizedReplay
 from replay_memory import ReplayMemory
+import copy
 
 parser = argparse.ArgumentParser(description='PyTorch Soft Actor-Critic Args')
 parser.add_argument('--env-name', default="Hockey",
@@ -38,7 +39,7 @@ parser.add_argument('--seed', type=int, default=123456, metavar='N',
                     help='random seed (default: 123456)')
 parser.add_argument('--batch_size', type=int, default=4, metavar='N',
                     help='batch size (default: 256)')
-parser.add_argument('--num_steps', type=int, default=1000001, metavar='N',
+parser.add_argument('--num_steps', type=int, default=10000001, metavar='N',
                     help='maximum number of steps (default: 1000000)')
 parser.add_argument('--hidden_size', type=int, default=256, metavar='N',
                     help='hidden size (default: 256)')
@@ -57,17 +58,15 @@ parser.add_argument('--train', action="store_true",
 args = parser.parse_args()
 
 
-env = h_env.HockeyEnv(mode=h_env.HockeyEnv.TRAIN_DEFENSE)
+env = h_env.HockeyEnv(mode=h_env.HockeyEnv.NORMAL)
 # Agent
 agent = SAC(env.observation_space.shape[0], env.action_space, args)
-agent.load_model('attack_models/sac_actor_hockey_17100_batch_size-4_gamma-0.95_tau-0.005_lr-0.0003_alpha-0.2_tuning-True_hidden_size-256_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-1000000','attack_models/sac_critic_hockey_17100_batch_size-4_gamma-0.95_tau-0.005_lr-0.0003_alpha-0.2_tuning-True_hidden_size-256_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-1000000')
-
-opponent = SAC(env.observation_space.shape[0], env.action_space, args)
-opponent.load_model('attack_models/sac_actor_hockey_17100_batch_size-4_gamma-0.95_tau-0.005_lr-0.0003_alpha-0.2_tuning-True_hidden_size-256_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-1000000','attack_models/sac_critic_hockey_17100_batch_size-4_gamma-0.95_tau-0.005_lr-0.0003_alpha-0.2_tuning-True_hidden_size-256_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-1000000')
-
+agent.load_model('full_player_models/sac_actor_hockey_11200_batch_size-4_gamma-0.95_tau-0.005_lr-0.0003_alpha-0.2_tuning-True_hidden_size-256_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-1000000','full_player_models/sac_critic_hockey_11200_batch_size-4_gamma-0.95_tau-0.005_lr-0.0003_alpha-0.2_tuning-True_hidden_size-256_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-1000000')
+# opponent = copy.deepcopy(agent)
+opponent = h_env.BasicOpponent(weak=False)
 time_ = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 #Tesnorboard
-writer = SummaryWriter(f"hockey-runs-defence/{time_}_batch_size-{args.batch_size}_gamma-{args.gamma}_tau-{args.tau}_lr-{args.lr}_alpha-{args.alpha}_tuning-{args.automatic_entropy_tuning}_hidden_size-{args.hidden_size}_updatesStep-{args.updates_per_step}_startSteps-{args.start_steps}_targetIntervall-{args.target_update_interval}_replaysize-{args.replay_size}")
+writer = SummaryWriter(f"strongplay-runs/Strong{time_}_batch_size-{args.batch_size}_gamma-{args.gamma}_tau-{args.tau}_lr-{args.lr}_alpha-{args.alpha}_tuning-{args.automatic_entropy_tuning}_hidden_size-{args.hidden_size}_updatesStep-{args.updates_per_step}_startSteps-{args.start_steps}_targetIntervall-{args.target_update_interval}_replaysize-{args.replay_size}")
 
 # Memory
 # memory = PrioritizedReplay(args.replay_size)
@@ -110,7 +109,7 @@ for i_episode in itertools.count(1):
 
         # a2 = [10,0.,0,0] 
         obs_agent2 = env.obs_agent_two()
-        a2 = opponent.select_action(obs_agent2, evaluate=True)
+        a2 = opponent.act(obs_agent2)
         next_state, reward, done, _ = env.step(np.hstack([action[0:4],a2[0:4]])) 
         
         # env.render()
@@ -121,7 +120,7 @@ for i_episode in itertools.count(1):
         # Ignore the "done" signal if it comes from hitting the time horizon.
         # (https://github.com/openai/spinningup/blob/master/spinup/algos/sac/sac.py)
 
-        mask = 1 if episode_steps == 81 else float(not done)
+        mask = 1 if episode_steps == 251 else float(not done)
         # mask = float(not done)
         # memory.append(state,action,reward,next_state,mask,episode_done=done)
         # memory.push(state, action, reward, next_state, mask) # Append transition to memory
@@ -146,7 +145,7 @@ for i_episode in itertools.count(1):
                 
                 action = agent.select_action(state, evaluate=True)
                 obs_agent2 = env.obs_agent_two()
-                a2 = opponent.select_action(obs_agent2, evaluate=True)
+                a2 = opponent.act(obs_agent2)
                 next_state, reward, done, _ = env.step(np.hstack([action[0:4],a2[0:4]])) 
                 # env.render()
                 episode_reward += reward
@@ -158,8 +157,10 @@ for i_episode in itertools.count(1):
 
         if i_episode%100==0:
             time_ = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-            agent.save_model( "hockey-models-defence", "hockey", suffix=f"reward-{avg_reward}_episode-"+str(i_episode)+f"_batch_size-{args.batch_size}_gamma-{args.gamma}_tau-{args.tau}_lr-{args.lr}_alpha-{args.alpha}_tuning-{args.automatic_entropy_tuning}_hidden_size-{args.hidden_size}_updatesStep-{args.updates_per_step}_startSteps-{args.start_steps}_targetIntervall-{args.target_update_interval}_replaysize-{args.replay_size}_t-{time_}")
-        
+            agent.save_model( "strongplay_models", "hockeyStrong", suffix=f"reward-{avg_reward}_episode-"+str(i_episode)+f"_batch_size-{args.batch_size}_gamma-{args.gamma}_tau-{args.tau}_lr-{args.lr}_alpha-{args.alpha}_tuning-{args.automatic_entropy_tuning}_hidden_size-{args.hidden_size}_updatesStep-{args.updates_per_step}_startSteps-{args.start_steps}_targetIntervall-{args.target_update_interval}_replaysize-{args.replay_size}_t-{time_}")
+        # if i_episode%5000==0:
+        #     opponent.policy.load_state_dict(agent.policy.state_dict())
+        #     opponent.critic.load_state_dict(agent.critic.state_dict())
         writer.add_scalar('avg_reward/test', avg_reward, i_episode)
 
         print("----------------------------------------")

@@ -55,12 +55,12 @@ parser.add_argument('--train', action="store_true",
 args = parser.parse_args()
 
 
-env = h_env.HockeyEnv(mode=h_env.HockeyEnv.TRAIN_DEFENSE)
+env = h_env.HockeyEnv(mode=h_env.HockeyEnv.NORMAL)
 # Agent
 agent = SAC(env.observation_space.shape[0], env.action_space, args)
-agent.load_model('/home/sebastiankoch/SoftActorCriticRNN/full_player_models/sac_actor_hockey_11200_batch_size-4_gamma-0.95_tau-0.005_lr-0.0003_alpha-0.2_tuning-True_hidden_size-256_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-1000000','/home/sebastiankoch/SoftActorCriticRNN/full_player_models/sac_critic_hockey_11200_batch_size-4_gamma-0.95_tau-0.005_lr-0.0003_alpha-0.2_tuning-True_hidden_size-256_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-1000000')
-# opponent = SAC(env.observation_space.shape[0], env.action_space, args)
-# opponent.load_model('attack_models/sac_actor_hockey_17100_batch_size-4_gamma-0.95_tau-0.005_lr-0.0003_alpha-0.2_tuning-True_hidden_size-256_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-1000000','attack_models/sac_critic_hockey_17100_batch_size-4_gamma-0.95_tau-0.005_lr-0.0003_alpha-0.2_tuning-True_hidden_size-256_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-1000000')
+agent.load_model('full_player_models/sac_actor_hockeySelf_reward-9.753174685381822_episode-10000_batch_size-4_gamma-0.95_tau-0.005_lr-0.0003_alpha-0.2_tuning-True_hidden_size-256_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-1000000_t-2021-03-08_15-32-17','full_player_models/sac_critic_hockeySelf_reward-9.753174685381822_episode-10000_batch_size-4_gamma-0.95_tau-0.005_lr-0.0003_alpha-0.2_tuning-True_hidden_size-256_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-1000000_t-2021-03-08_15-32-17')# opponent = SAC(env.observation_space.shape[0], env.action_space, args)
+opponent = SAC(env.observation_space.shape[0], env.action_space, args)
+opponent.load_model('full_player_models/sac_actor_hockey_11200_batch_size-4_gamma-0.95_tau-0.005_lr-0.0003_alpha-0.2_tuning-True_hidden_size-256_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-1000000','full_player_models/sac_critic_hockey_11200_batch_size-4_gamma-0.95_tau-0.005_lr-0.0003_alpha-0.2_tuning-True_hidden_size-256_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-1000000')
 basic = h_env.BasicOpponent(weak=False)
 time_ = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 #Tesnorboard
@@ -92,7 +92,8 @@ for _  in range(episodes):
         
         action = agent.select_action(state, evaluate=True)
         obs_agent2 = env.obs_agent_two()
-        a2 =basic.act(obs_agent2)
+        # a2 =basic.act(obs_agent2)
+        a2 = opponent.select_action(obs_agent2,evaluate=True)
         next_state, reward, done, info = env.step(np.hstack([action[0:4],a2[0:4]])) 
         env.render()
         episode_reward += reward
