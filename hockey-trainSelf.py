@@ -12,7 +12,7 @@ import torch
 from sac_better import SAC
 from torch.utils.tensorboard import SummaryWriter
 from prio_replay_memory import PrioritizedReplay
-# from replay_memory import ReplayMemory
+from replay_memory import ReplayMemory
 import copy
 
 parser = argparse.ArgumentParser(description='PyTorch Soft Actor-Critic Args')
@@ -22,7 +22,7 @@ parser.add_argument('--policy', default="Gaussian",
                     help='Policy Type: Gaussian | Deterministic (default: Gaussian)')
 parser.add_argument('--eval', type=bool, default=True,
                     help='Evaluates a policy a policy every 10 episode (default: True)')
-parser.add_argument('--gamma', type=float, default=0.98, metavar='G',
+parser.add_argument('--gamma', type=float, default=0.95, metavar='G',
                     help='discount factor for reward (default: 0.99)')
 parser.add_argument('--tau', type=float, default=0.005, metavar='G',
                     help='target smoothing coefficient(τ) (default: 0.005)')
@@ -97,8 +97,8 @@ for i_episode in itertools.count(1):
             # Number of updates per step in environment
             for i in range(args.updates_per_step):
                 # Update parameters of all the networks
-                critic_1_loss, critic_2_loss, policy_loss, ent_loss, alpha = agent.update_parameters(memory, args.batch_size, updates)
-                # memory=memory_
+                critic_1_loss, critic_2_loss, policy_loss, ent_loss, alpha, memory_ = agent.update_parameters(memory, args.batch_size, updates)
+                memory=memory_
 
                 writer.add_scalar('loss/critic_1', critic_1_loss, updates)
                 writer.add_scalar('loss/critic_2', critic_2_loss, updates)
@@ -161,7 +161,7 @@ for i_episode in itertools.count(1):
             avg_reward += episode_reward
         avg_reward /= episodes
 
-        if i_episode%100==0:
+        if i_episode%500==0:
             time_ = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
             agent.save_model( "selfstrongplay_models_prio", "hockey", suffix=f"reward-{avg_reward}_episode-"+str(i_episode)+f"_batch_size-{args.batch_size}_gamma-{args.gamma}_tau-{args.tau}_lr-{args.lr}_alpha-{args.alpha}_tuning-{args.automatic_entropy_tuning}_hidden_size-{args.hidden_size}_updatesStep-{args.updates_per_step}_startSteps-{args.start_steps}_targetIntervall-{args.target_update_interval}_replaysize-{args.replay_size}_t-{time_}")
         if i_episode%5000==0:
