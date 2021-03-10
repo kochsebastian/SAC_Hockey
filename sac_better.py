@@ -4,8 +4,8 @@ import torch.nn.functional as F
 from torch.optim import Adam
 from utils import soft_update, hard_update
 from model import PolicyNetwork, SoftQNetwork
-from ere_prio_replay import PrioritizedReplay
-# from prio_replay_memory import PrioritizedReplay
+from ere_prio_replay import PrioritizedReplay as ERE_PrioritizedReplay
+from prio_replay_memory import PrioritizedReplay
 
 class SAC(object):
     def __init__(self, num_inputs, action_space, args):
@@ -59,7 +59,7 @@ class SAC(object):
 
     def update_parameters(self, memory, batch_size, updates, c_k=None):
         # Sample a batch from memory
-        if isinstance(memory,PrioritizedReplay):
+        if isinstance(memory,PrioritizedReplay) or isinstance(memory,ERE_PrioritizedReplay):
             state_batch, action_batch, reward_batch, next_state_batch, mask_batch, idxs, weights_batch = memory.sample(batch_size=batch_size,c_k=c_k)
         else:
             state_batch, action_batch, reward_batch, next_state_batch, mask_batch = memory.sample(batch_size=batch_size)
@@ -69,7 +69,7 @@ class SAC(object):
         action_batch = torch.FloatTensor(action_batch).to(self.device)
         reward_batch = torch.FloatTensor(reward_batch).to(self.device).unsqueeze(1)
         mask_batch = torch.FloatTensor(mask_batch).to(self.device).unsqueeze(1)
-        if isinstance(memory,PrioritizedReplay):
+        if isinstance(memory,PrioritizedReplay) or isinstance(memory,ERE_PrioritizedReplay):
             weights_batch = torch.FloatTensor(weights_batch).to(self.device).unsqueeze(1)
 
         with torch.no_grad():
@@ -78,8 +78,8 @@ class SAC(object):
             min_qf_next_target = torch.min(qf1_next_target, qf2_next_target) - self.alpha * next_state_log_pi
             next_q_value = reward_batch + mask_batch * self.gamma * (min_qf_next_target)
         qf1, qf2 = self.critic(state_batch, action_batch)  # Two Q-functions to mitigate positive bias in the policy improvement step
-        if isinstance(memory,PrioritizedReplay):
-            qf1_loss,qf2_loss,prios = self.deputy_mse(qf1,qf2,next_q_value,weights_batch)
+        if isinstance(memory,PrioritizedReplay) or isinstance(memory,ERE_PrioritizedReplay):
+            qf1_loss,qf2_loss,prios = self.depute_mse(qf1,qf2,next_q_value,weights_batch)
         else:
             qf1_loss = F.mse_loss(qf1, next_q_value)  # JQ = 𝔼(st,at)~D[0.5(Q1(st,at) - r(st,at) - γ(𝔼st+1~p[V(st+1)]))^2]
             qf2_loss = F.mse_loss(qf2, next_q_value)  # JQ = 𝔼(st,at)~D[0.5(Q1(st,at) - r(st,at) - γ(𝔼st+1~p[V(st+1)]))^2]
@@ -90,7 +90,7 @@ class SAC(object):
         qf_loss.backward()
         self.critic_optim.step()
 
-        if isinstance(memory,PrioritizedReplay):
+        if isinstance(memory,PrioritizedReplay) or isinstance(memory,ERE_PrioritizedReplay):
             memory.update_priorities(idxs,prios.data.cpu().numpy())
 
         pi, log_pi, _ = self.policy.sample(state_batch)
@@ -98,7 +98,7 @@ class SAC(object):
         qf1_pi, qf2_pi = self.critic(state_batch, pi)
         min_qf_pi = torch.min(qf1_pi, qf2_pi)
 
-        if isinstance(memory,PrioritizedReplay):
+        if isinstance(memory,PrioritizedReplay) or isinstance(memory,ERE_PrioritizedReplay):
             policy_loss = ((self.alpha * log_pi) - min_qf_pi*weights_batch).mean() # Jπ = 𝔼st∼D,εt∼N[α * logπ(f(εt;st)|st) − Q(st,f(εt;st))]
         else:
             policy_loss = ((self.alpha * log_pi) - min_qf_pi).mean() # Jπ = 𝔼st∼D,εt∼N[α * logπ(f(εt;st)|st) − Q(st,f(εt;st))]
@@ -124,7 +124,7 @@ class SAC(object):
         if updates % self.target_update_interval == 0:
             soft_update(self.critic_target, self.critic, self.tau)
         # memory.frame+=5
-        return qf1_loss.item(), qf2_loss.item(), policy_loss.item(), alpha_loss.item(), alpha_tlogs.item()
+        return qf1_loss.item(), qf2_loss.item(), policy_loss.item(), alpha_loss.item(), alpha_tlogs.item(), memory
 
     # Save model parameters
     def save_model(self, root_name, env_name, suffix="", actor_path=None, critic_path=None):
