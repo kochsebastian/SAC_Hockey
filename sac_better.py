@@ -49,7 +49,7 @@ class SAC(object):
             _, _, action = self.policy.sample(state)
         return action.detach().cpu().numpy()[0]
 
-    def depute_mse(self,qf1,qf2,next_q_value,weights):
+    def deputy_mse(self,qf1,qf2,next_q_value,weights):
         td_error1 =  next_q_value - qf1
         td_error2 =  next_q_value - qf2
         qf1_loss = 0.5 * (td_error1.pow(2)*weights).mean()
@@ -79,7 +79,7 @@ class SAC(object):
             next_q_value = reward_batch + mask_batch * self.gamma * (min_qf_next_target)
         qf1, qf2 = self.critic(state_batch, action_batch)  # Two Q-functions to mitigate positive bias in the policy improvement step
         if isinstance(memory,PrioritizedReplay):
-            qf1_loss,qf2_loss,prios = self.depute_mse(qf1,qf2,next_q_value,weights_batch)
+            qf1_loss,qf2_loss,prios = self.deputy_mse(qf1,qf2,next_q_value,weights_batch)
         else:
             qf1_loss = F.mse_loss(qf1, next_q_value)  # JQ = 𝔼(st,at)~D[0.5(Q1(st,at) - r(st,at) - γ(𝔼st+1~p[V(st+1)]))^2]
             qf2_loss = F.mse_loss(qf2, next_q_value)  # JQ = 𝔼(st,at)~D[0.5(Q1(st,at) - r(st,at) - γ(𝔼st+1~p[V(st+1)]))^2]
