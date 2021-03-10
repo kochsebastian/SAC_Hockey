@@ -4,8 +4,8 @@ import torch.nn.functional as F
 from torch.optim import Adam
 from utils import soft_update, hard_update
 from model import PolicyNetwork, SoftQNetwork
-# from ere_prio_replay import PrioritizedReplay
-from prio_replay_memory import PrioritizedReplay
+from ere_prio_replay import PrioritizedReplay
+# from prio_replay_memory import PrioritizedReplay
 
 class SAC(object):
     def __init__(self, num_inputs, action_space, args):

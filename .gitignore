@@ -17,3 +17,7 @@ hockey-models-defence/
 laserhockey/__pycache__
 selfplay-runs/
 selfplay_models/
+hockey-ere-models-attack/
+hockey-models-attack_old/
+hockey-ere-runs-attack/
+hockey-runs-attack_old/
