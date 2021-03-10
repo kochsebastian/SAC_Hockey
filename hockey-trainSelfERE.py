@@ -11,7 +11,7 @@ import itertools
 import torch
 from sac_better import SAC
 from torch.utils.tensorboard import SummaryWriter
-from prio_replay_memory import PrioritizedReplay
+from ere_prio_replay import PrioritizedReplay
 # from replay_memory import ReplayMemory
 import copy
 
@@ -66,7 +66,7 @@ opponent = copy.deepcopy(agent)
 basic_strong = h_env.BasicOpponent(weak=False)
 time_ = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 #Tesnorboard
-writer = SummaryWriter(f"selfstrongplay-runs/prio{time_}_batch_size-{args.batch_size}_gamma-{args.gamma}_tau-{args.tau}_lr-{args.lr}_alpha-{args.alpha}_tuning-{args.automatic_entropy_tuning}_hidden_size-{args.hidden_size}_updatesStep-{args.updates_per_step}_startSteps-{args.start_steps}_targetIntervall-{args.target_update_interval}_replaysize-{args.replay_size}")
+writer = SummaryWriter(f"selfstrongplay-runs/ere{time_}_batch_size-{args.batch_size}_gamma-{args.gamma}_tau-{args.tau}_lr-{args.lr}_alpha-{args.alpha}_tuning-{args.automatic_entropy_tuning}_hidden_size-{args.hidden_size}_updatesStep-{args.updates_per_step}_startSteps-{args.start_steps}_targetIntervall-{args.target_update_interval}_replaysize-{args.replay_size}")
 
 # Memory
 memory = PrioritizedReplay(args.replay_size)
@@ -79,7 +79,10 @@ updates = 0
 
 o = env.reset()
 # _ = env.render()
-
+eta_0 = 0.996
+eta_T = 1.0
+max_ep_len = 1000 
+c_k_min = 2500 # original = 5000
 for i_episode in itertools.count(1):
     episode_reward = 0
     episode_steps = 0
@@ -93,19 +96,19 @@ for i_episode in itertools.count(1):
         else:
             action = agent.select_action(state)  # Sample action from policy
 
-        if len(memory) > args.batch_size:
-            # Number of updates per step in environment
-            for i in range(args.updates_per_step):
-                # Update parameters of all the networks
-                critic_1_loss, critic_2_loss, policy_loss, ent_loss, alpha = agent.update_parameters(memory, args.batch_size, updates)
-                # memory=memory_
+        # if len(memory) > args.batch_size:
+        #     # Number of updates per step in environment
+        #     for i in range(args.updates_per_step):
+        #         # Update parameters of all the networks
+        #         critic_1_loss, critic_2_loss, policy_loss, ent_loss, alpha = agent.update_parameters(memory, args.batch_size, updates)
+        #         # memory=memory_
 
-                writer.add_scalar('loss/critic_1', critic_1_loss, updates)
-                writer.add_scalar('loss/critic_2', critic_2_loss, updates)
-                writer.add_scalar('loss/policy', policy_loss, updates)
-                writer.add_scalar('loss/entropy_loss', ent_loss, updates)
-                writer.add_scalar('entropy_temprature/alpha', alpha, updates)
-                updates += 1
+        #         writer.add_scalar('loss/critic_1', critic_1_loss, updates)
+        #         writer.add_scalar('loss/critic_2', critic_2_loss, updates)
+        #         writer.add_scalar('loss/policy', policy_loss, updates)
+        #         writer.add_scalar('loss/entropy_loss', ent_loss, updates)
+        #         writer.add_scalar('entropy_temprature/alpha', alpha, updates)
+        #         updates += 1
 
         # a2 = [10,0.,0,0] 
         obs_agent2 = env.obs_agent_two()
@@ -127,12 +130,29 @@ for i_episode in itertools.count(1):
         # mask = float(not done)
         # memory.append(state,action,reward,next_state,mask,episode_done=done)
         # memory.push(state, action, reward, next_state, mask) # Append transition to memory
+        # memory.push(state, action, reward, next_state, mask)
         memory.push(state, action, reward, next_state, mask)
+        eta_t = eta_0 + (eta_T - eta_0)*(total_numsteps/args.num_steps)
 
         state = next_state
 
     if total_numsteps > args.num_steps:
         break
+
+    for k in range(1,episode_steps):
+        c_k = max(int(len(memory)*eta_t**(k*(251/episode_steps))), c_k_min)
+        for i in range(args.updates_per_step):
+            # Update parameters of all the networks
+            critic_1_loss, critic_2_loss, policy_loss, ent_loss, alpha = agent.update_parameters(memory, args.batch_size, updates,c_k=c_k)
+            # memory=memory_
+
+            writer.add_scalar('loss/critic_1', critic_1_loss, updates)
+            writer.add_scalar('loss/critic_2', critic_2_loss, updates)
+            writer.add_scalar('loss/policy', policy_loss, updates)
+            writer.add_scalar('loss/entropy_loss', ent_loss, updates)
+            writer.add_scalar('entropy_temprature/alpha', alpha, updates)
+            updates += 1
+
 
     writer.add_scalar('reward/train', episode_reward, i_episode)
     print("Episode: {}, total numsteps: {}, episode steps: {}, reward: {}".format(i_episode, total_numsteps, episode_steps, round(episode_reward, 2)))
@@ -163,7 +183,7 @@ for i_episode in itertools.count(1):
 
         if i_episode%100==0:
             time_ = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-            agent.save_model( "selfstrongplay_models_prio", "hockey", suffix=f"reward-{avg_reward}_episode-"+str(i_episode)+f"_batch_size-{args.batch_size}_gamma-{args.gamma}_tau-{args.tau}_lr-{args.lr}_alpha-{args.alpha}_tuning-{args.automatic_entropy_tuning}_hidden_size-{args.hidden_size}_updatesStep-{args.updates_per_step}_startSteps-{args.start_steps}_targetIntervall-{args.target_update_interval}_replaysize-{args.replay_size}_t-{time_}")
+            agent.save_model( "selfstrongplay_models_ere", "hockey", suffix=f"reward-{avg_reward}_episode-"+str(i_episode)+f"_batch_size-{args.batch_size}_gamma-{args.gamma}_tau-{args.tau}_lr-{args.lr}_alpha-{args.alpha}_tuning-{args.automatic_entropy_tuning}_hidden_size-{args.hidden_size}_updatesStep-{args.updates_per_step}_startSteps-{args.start_steps}_targetIntervall-{args.target_update_interval}_replaysize-{args.replay_size}_t-{time_}")
         if i_episode%5000==0:
             opponent.policy.load_state_dict(agent.policy.state_dict())
             opponent.critic.load_state_dict(agent.critic.state_dict())
