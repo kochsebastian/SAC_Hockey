@@ -58,7 +58,7 @@ class SAC(object):
         pad_batch = max(len(l) for l in state_batch)
         pad_state = np.zeros(state_batch[0][0].shape, dtype="float32")
         pad_action = np.zeros(action_batch[0][0].shape, dtype="float32")
-        pad_reward = 0.0
+        pad_reward = state_batch[]
         pad_done = 1.0
         for i,s in enumerate(state_batch):
             l = len(s)
