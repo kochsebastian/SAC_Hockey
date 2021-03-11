@@ -25,3 +25,10 @@ lunar_lander_runs_baseline_ere_per/
 strongplay_models/
 selfstrongplay_models
 selfstrongplay-runs/
+hockey-hidden-models-attack/
+hockey-hidden-models-defence/
+hockey--models-attack/
+hockey-hidden-runs-defence/
+hockey-hidden-runs-attack/
+ppo_baseline
+hockey-models-attack/

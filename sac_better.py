@@ -36,20 +36,19 @@ class SAC(object):
             self.policy_optim = Adam(self.policy.parameters(), lr=args.lr)
 
         else:
-            self.alpha = 0
-            self.automatic_entropy_tuning = False
-            self.policy = DeterministicPolicy(num_inputs, action_space.shape[0], args.hidden_size, action_space).to(self.device)
-            self.policy_optim = Adam(self.policy.parameters(), lr=args.lr)
+            # gSDE? noisy layers?
+            raise NotImplementedError
 
     def select_action(self, state, evaluate=False):
         state = torch.FloatTensor(state).to(self.device).unsqueeze(0)
         if evaluate is False:
-            action, _, _ = self.policy.sample(state)
+            action, log_prob, mu = self.policy.sample(state)
         else:
             _, _, action = self.policy.sample(state)
         return action.detach().cpu().numpy()[0]
 
     def deputy_mse(self,qf1,qf2,next_q_value,weights):
+        # to incorperate the weights for pre
         td_error1 =  next_q_value - qf1
         td_error2 =  next_q_value - qf2
         qf1_loss = 0.5 * (td_error1.pow(2)*weights).mean()
@@ -77,12 +76,12 @@ class SAC(object):
             qf1_next_target, qf2_next_target = self.critic_target(next_state_batch, next_state_action)
             min_qf_next_target = torch.min(qf1_next_target, qf2_next_target) - self.alpha * next_state_log_pi
             next_q_value = reward_batch + mask_batch * self.gamma * (min_qf_next_target)
-        qf1, qf2 = self.critic(state_batch, action_batch)  # Two Q-functions to mitigate positive bias in the policy improvement step
+        qf1, qf2 = self.critic(state_batch, action_batch) 
         if isinstance(memory,PrioritizedReplay) or isinstance(memory,ERE_PrioritizedReplay):
-            qf1_loss,qf2_loss,prios = self.depute_mse(qf1,qf2,next_q_value,weights_batch)
+            qf1_loss, qf2_loss, prios = self.deputy_mse(qf1, qf2, next_q_value, weights_batch)
         else:
-            qf1_loss = F.mse_loss(qf1, next_q_value)  # JQ = 𝔼(st,at)~D[0.5(Q1(st,at) - r(st,at) - γ(𝔼st+1~p[V(st+1)]))^2]
-            qf2_loss = F.mse_loss(qf2, next_q_value)  # JQ = 𝔼(st,at)~D[0.5(Q1(st,at) - r(st,at) - γ(𝔼st+1~p[V(st+1)]))^2]
+            qf1_loss = F.mse_loss(qf1, next_q_value)  
+            qf2_loss = F.mse_loss(qf2, next_q_value)  
         qf_loss = qf1_loss + qf2_loss
         
 
@@ -91,7 +90,7 @@ class SAC(object):
         self.critic_optim.step()
 
         if isinstance(memory,PrioritizedReplay) or isinstance(memory,ERE_PrioritizedReplay):
-            memory.update_priorities(idxs,prios.data.cpu().numpy())
+            memory.update_priorities(idxs, prios.data.cpu().numpy())
 
         pi, log_pi, _ = self.policy.sample(state_batch)
 
@@ -99,10 +98,9 @@ class SAC(object):
         min_qf_pi = torch.min(qf1_pi, qf2_pi)
 
         if isinstance(memory,PrioritizedReplay) or isinstance(memory,ERE_PrioritizedReplay):
-            policy_loss = ((self.alpha * log_pi) - min_qf_pi*weights_batch).mean() # Jπ = 𝔼st∼D,εt∼N[α * logπ(f(εt;st)|st) − Q(st,f(εt;st))]
+            policy_loss = ((self.alpha * log_pi) - min_qf_pi*weights_batch).mean() 
         else:
-            policy_loss = ((self.alpha * log_pi) - min_qf_pi).mean() # Jπ = 𝔼st∼D,εt∼N[α * logπ(f(εt;st)|st) − Q(st,f(εt;st))]
-
+            policy_loss = ((self.alpha * log_pi) - min_qf_pi).mean() 
         self.policy_optim.zero_grad()
         policy_loss.backward()
         self.policy_optim.step()
@@ -115,21 +113,20 @@ class SAC(object):
             self.alpha_optim.step()
 
             self.alpha = self.log_alpha.exp()
-            alpha_tlogs = self.alpha.clone() # For TensorboardX logs
+            alpha_tlogs = self.alpha.clone()
         else:
             alpha_loss = torch.tensor(0.).to(self.device)
-            alpha_tlogs = torch.tensor(self.alpha) # For TensorboardX logs
+            alpha_tlogs = torch.tensor(self.alpha) 
 
 
         if updates % self.target_update_interval == 0:
             soft_update(self.critic_target, self.critic, self.tau)
-        # memory.frame+=5
         return qf1_loss.item(), qf2_loss.item(), policy_loss.item(), alpha_loss.item(), alpha_tlogs.item(), memory
 
     # Save model parameters
     def save_model(self, root_name, env_name, suffix="", actor_path=None, critic_path=None):
-        if not os.path.exists('models/'):
-            os.makedirs('models/')
+        if not os.path.exists(root_name):
+            os.makedirs(root_name)
 
         if actor_path is None:
             actor_path = "{}/sac_actor_{}_{}".format(root_name,env_name, suffix)

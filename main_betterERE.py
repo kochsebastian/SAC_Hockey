@@ -109,10 +109,7 @@ for i_episode in itertools.count(1):
 
 
         # Ignore the "done" signal if it comes from hitting the time horizon.
-        # (https://github.com/openai/spinningup/blob/master/spinup/algos/sac/sac.py)
         mask = 1 if episode_steps == env._max_episode_steps else float(not done)
-        # memory.append(state,action,reward,next_state,mask,episode_done=done)
-        # memory.push(state, action, reward, next_state, mask) # Append transition to memory
         memory.push(state, action, reward, next_state, mask)
         eta_t = eta_0 + (eta_T - eta_0)*(total_numsteps/args.num_steps)
 

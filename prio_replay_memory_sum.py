@@ -8,13 +8,14 @@ class PrioritizedReplay(object):
     """
     Proportional Prioritization
     """
-    def __init__(self, capacity, alpha= 0.6, beta_start = 0.4, beta_steps=100000):
+    def __init__(self, capacity, alpha=0.6, beta_start = 0.4,beta_steps=100000):
         self.alpha = alpha
         self.beta_start = beta_start
         self.beta_steps = beta_steps
         self.step = 1 
         self.capacity   = capacity
         self.buffer     = []
+        self.tree = SumTree(capacity)
         self.pos        = 0
         self.priorities = np.zeros((capacity,), dtype=np.float32)
     
@@ -43,7 +44,7 @@ class PrioritizedReplay(object):
             self.buffer[self.pos] = (state, action, reward, next_state, done) 
         
         self.priorities[self.pos] = max_prio
-        self.pos = (self.pos + 1) % self.capacity 
+        self.pos = (self.pos + 1) % self.capacity # lets the pos circle in the ranges of capacity if pos+1 > cap --> new posi = 0
     
     def sample(self, batch_size, c_k=None):
         N = len(self.buffer)

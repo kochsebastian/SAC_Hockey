@@ -1,11 +1,26 @@
 import numpy as np
-# maybe use pip install EventAccumulator
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 import pandas as pd
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import argparse
 import seaborn as sns; sns.set()
+import csv
+
+def get_csv_log(log_dirs):
+    steps, values = [], []
+    data = {}
+    for idx, path in enumerate(log_dirs):
+        reader = csv.reader(open(path, 'r'))
+        
+        for row in reader:
+            wall_time, step, value = row
+            steps.append(step)
+            values.append(value)
+
+    data["steps"] = steps
+    data["values"] = values
+    return data
 
 def get_tensorflow_log(log_dirs: list, label: str):
     """Returns log files for one label"""
@@ -94,7 +109,8 @@ if __name__ == '__main__':
         print("Process Label: ", args.label[0][i])
         data_per_label = []
         for j in range(num_alg):
-            data_log = get_tensorflow_log(log_dirs=dirs[j], label=args.label[0][i])
+            # data_log = get_tensorflow_log(log_dirs=dirs[j], label=args.label[0][i])
+            data_log = get_csv_log(dirs[j])
             dataset = create_dataset(data_log, args.label[0][i])
             data_per_label.append(dataset)
         
