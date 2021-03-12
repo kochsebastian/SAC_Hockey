@@ -32,3 +32,5 @@ hockey-hidden-runs-defence/
 hockey-hidden-runs-attack/
 ppo_baseline
 hockey-models-attack/
+strongplay-runs*
+strongplay_models*
