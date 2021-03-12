@@ -1,15 +1,15 @@
 import random
 import numpy as np
 from collections import deque
-from prio_replay_memory import PrioritizedReplay
+from prio_replay_memory import PrioritizedReplay as PRE_PrioritizedReplay
 
 # without sum tree
-class PrioritizedReplay(PrioritizedReplay):
+class PrioritizedReplay(PRE_PrioritizedReplay):
     """
     Proportional Prioritization
     """
     def __init__(self, capacity, alpha=0.6, beta_start = 0.4, beta_steps=100000):
-        PrioritizedReplay.__init__(self,capacity, alpha, beta_start, beta_steps)
+        PRE_PrioritizedReplay.__init__(self, capacity, alpha, beta_start, beta_steps)
         self.buffer     = deque(maxlen=capacity)
         self.priorities = deque(maxlen=capacity)
     

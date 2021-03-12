@@ -11,7 +11,8 @@ import itertools
 import torch
 from sac_better import SAC
 from torch.utils.tensorboard import SummaryWriter
-# from prio_replay_memory import PrioritizedReplay
+from prio_replay_memory import PrioritizedReplay
+from ere_prio_replay import PrioritizedReplay as ERE_PrioritizedReplay
 from replay_memory import ReplayMemory
 import copy
 
@@ -30,7 +31,7 @@ parser.add_argument('--lr', type=float, default=0.0003, metavar='G',
                     help='learning rate (default: 0.0003)')
 parser.add_argument('--wd', type=float, default=0.0, metavar='G',
                     help='learning rate (default: 0.0)')
-parser.add_argument('--alpha', type=float, default=0.2, metavar='G',
+parser.add_argument('--alpha', type=float, default=0.1, metavar='G',
                     help='Temperature parameter α determines the relative importance of the entropy\
                             term against the reward (default: 0.2)')
 parser.add_argument('--automatic_entropy_tuning', type=bool, default=True, metavar='G',
@@ -41,7 +42,7 @@ parser.add_argument('--batch_size', type=int, default=4, metavar='N',
                     help='batch size (default: 256)')
 parser.add_argument('--num_steps', type=int, default=10000001, metavar='N',
                     help='maximum number of steps (default: 1000000)')
-parser.add_argument('--hidden_size', type=int, default=256, metavar='N',
+parser.add_argument('--hidden_size', type=int, default=512, metavar='N',
                     help='hidden size (default: 256)')
 parser.add_argument('--updates_per_step', type=int, default=5, metavar='N',
                     help='model updates per simulator step (default: 1)')
@@ -62,7 +63,10 @@ args.cuda = True
 env = h_env.HockeyEnv(mode=h_env.HockeyEnv.NORMAL)
 # Agent
 agent = SAC(env.observation_space.shape[0], env.action_space, args)
-agent.load_model('full_player_models/sac_actor_hockey_11200_batch_size-4_gamma-0.95_tau-0.005_lr-0.0003_alpha-0.2_tuning-True_hidden_size-256_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-1000000','full_player_models/sac_critic_hockey_11200_batch_size-4_gamma-0.95_tau-0.005_lr-0.0003_alpha-0.2_tuning-True_hidden_size-256_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-1000000')
+actor = "full_player_models/sac_actor_hockey_reward-8.938693169580354_episode-4500_batch_size-4_gamma-0.95_tau-0.005_lr-0.0003_alpha-0.2_tuning-True_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-1000000_t-2021-03-10_23-26-27"
+critic = "full_player_models/sac_critic_hockey_reward-8.938693169580354_episode-4500_batch_size-4_gamma-0.95_tau-0.005_lr-0.0003_alpha-0.2_tuning-True_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-1000000_t-2021-03-10_23-26-27"
+
+agent.load_model(actor,critic)
 # opponent = copy.deepcopy(agent)
 opponent = h_env.BasicOpponent(weak=False)
 time_ = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
@@ -80,6 +84,7 @@ writer = SummaryWriter(f"strongplay-runsUpdate/Strong{time_}_batch_size-{args.ba
 
 o = env.reset()
 # _ = env.render()
+writer = SummaryWriter(f"strongplay-runs-replay/{time_}_batch_size-{args.batch_size}_gamma-{args.gamma}_tau-{args.tau}_lr-{args.lr}_alpha-{args.alpha}_tuning-{args.automatic_entropy_tuning}_hidden_size-{args.hidden_size}_updatesStep-{args.updates_per_step}_startSteps-{args.start_steps}_targetIntervall-{args.target_update_interval}_replaysize-{args.replay_size}")
 
 for i_episode in itertools.count(1):
     episode_reward = 0

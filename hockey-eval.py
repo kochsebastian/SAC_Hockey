@@ -38,7 +38,7 @@ parser.add_argument('--batch_size', type=int, default=4, metavar='N',
                     help='batch size (default: 256)')
 parser.add_argument('--num_steps', type=int, default=1000001, metavar='N',
                     help='maximum number of steps (default: 1000000)')
-parser.add_argument('--hidden_size', type=int, default=256, metavar='N',
+parser.add_argument('--hidden_size', type=int, default=512, metavar='N',
                     help='hidden size (default: 256)')
 parser.add_argument('--updates_per_step', type=int, default=1, metavar='N',
                     help='model updates per simulator step (default: 1)')
@@ -58,11 +58,19 @@ args = parser.parse_args()
 env = h_env.HockeyEnv(mode=h_env.HockeyEnv.NORMAL)
 # Agent
 agent = SAC(env.observation_space.shape[0], env.action_space, args)
-agent.load_model('full_player_models/sac_actor_hockeySelf_reward-9.753174685381822_episode-10000_batch_size-4_gamma-0.95_tau-0.005_lr-0.0003_alpha-0.2_tuning-True_hidden_size-256_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-1000000_t-2021-03-08_15-32-17',"full_player_models/sac_critic_hockeySelf_reward-9.753174685381822_episode-10000_batch_size-4_gamma-0.95_tau-0.005_lr-0.0003_alpha-0.2_tuning-True_hidden_size-256_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-1000000_t-2021-03-08_15-32-17")
+actor = "strongplay_models_alpha/sac_actor_hockeyStrongPRE_reward-9.590869141533414_episode-38500_batch_size-4_gamma-0.97_tau-0.005_lr-0.0003_alpha-0.01_tuning-False_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-10000000_t-2021-03-12_07-25-54"
+critic = "strongplay_models_alpha/sac_critic_hockeyStrongPRE_reward-9.590869141533414_episode-38500_batch_size-4_gamma-0.97_tau-0.005_lr-0.0003_alpha-0.01_tuning-False_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-10000000_t-2021-03-12_07-25-54"
+agent.load_model(actor,critic)
 
-# agent = SAC(env.observation_space.shape[0], env.action_space, args)
-# agent.load_model('full_player_models/sac_actor_hockeyStrong_reward-9.43225949089355_episode-97200_batch_size-4_gamma-0.95_tau-0.005_lr-0.0003_alpha-0.2_tuning-True_hidden_size-256_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-1000000_t-2021-03-10_02-13-47','full_player_models/sac_critic_hockeyStrong_reward-9.43225949089355_episode-97200_batch_size-4_gamma-0.95_tau-0.005_lr-0.0003_alpha-0.2_tuning-True_hidden_size-256_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-1000000_t-2021-03-10_02-13-47')
+args.hidden_size=256
+opponent = SAC(env.observation_space.shape[0], env.action_space, args)
+o_actor = "selfplay_models/sac_actor_hockeySelf_reward-9.742666643080318_episode-132700_batch_size-4_gamma-0.95_tau-0.005_lr-0.0003_alpha-0.2_tuning-True_hidden_size-256_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-1000000_t-2021-03-10_14-54-00"
+o_critic = "selfplay_models/sac_critic_hockeySelf_reward-9.742666643080318_episode-132700_batch_size-4_gamma-0.95_tau-0.005_lr-0.0003_alpha-0.2_tuning-True_hidden_size-256_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-1000000_t-2021-03-10_14-54-00"
+opponent.load_model(o_actor,o_critic)
+
+
 basic = h_env.BasicOpponent(weak=False)
+
 time_ = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 #Tesnorboard
 # writer = SummaryWriter(f"hockey-runs-defence/{time_}_batch_size-{args.batch_size}_gamma-{args.gamma}_tau-{args.tau}_lr-{args.lr}_alpha-{args.alpha}_tuning-{args.automatic_entropy_tuning}_hidden_size-{args.hidden_size}_updatesStep-{args.updates_per_step}_startSteps-{args.start_steps}_targetIntervall-{args.target_update_interval}_replaysize-{args.replay_size}")
@@ -91,12 +99,12 @@ for _  in range(episodes):
     won = None
     while not done:
 
+        # action = basic.act(state)
+        action = agent.select_action(state, evaluate=True)
         obs_agent2 = env.obs_agent_two()
-        action =basic.act(state)
+        # a2 = basic.act(obs_agent2)
         a2 = agent.select_action(obs_agent2, evaluate=True)
         
-        
-        # a2 = opponent.select_action(obs_agent2,evaluate=True)
         next_state, reward, done, info = env.step(np.hstack([action[0:4],a2[0:4]])) 
         env.render()
         episode_reward += reward
