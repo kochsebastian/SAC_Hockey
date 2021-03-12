@@ -34,3 +34,5 @@ ppo_baseline
 hockey-models-attack/
 selfstrongplay_models_ere/
 selfstrongplay_models_prio/
+strongplay-runs*
+strongplay_models*
