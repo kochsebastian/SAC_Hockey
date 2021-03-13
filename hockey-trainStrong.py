@@ -26,7 +26,7 @@ parser.add_argument('--gamma', type=float, default=0.95, metavar='G',
                     help='discount factor for reward (default: 0.99)')
 parser.add_argument('--tau', type=float, default=0.005, metavar='G',
                     help='target smoothing coefficient(τ) (default: 0.005)')
-parser.add_argument('--lr', type=float, default=0.0003, metavar='G',
+parser.add_argument('--lr', type=float, default=0.0004, metavar='G',
                     help='learning rate (default: 0.0003)')
 parser.add_argument('--wd', type=float, default=0.0, metavar='G',
                     help='learning rate (default: 0.0)')

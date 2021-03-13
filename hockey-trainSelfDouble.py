@@ -63,7 +63,7 @@ actor = "full_player_models/sac_actor_hockey_reward-8.938693169580354_episode-45
 critic = "full_player_models/sac_critic_hockey_reward-8.938693169580354_episode-4500_batch_size-4_gamma-0.95_tau-0.005_lr-0.0003_alpha-0.2_tuning-True_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-1000000_t-2021-03-10_23-26-27"
 agent.load_model(actor,critic)
 
-args.alpha=0.01
+args.alpha=0.1
 args.automatic_entropy_tuning=False
 opponent = SAC(env.observation_space.shape[0], env.action_space, args)
 opponent.load_model(actor,critic)
@@ -101,11 +101,11 @@ for i_episode in itertools.count(1):
             action = env.action_space.sample()  # Sample random action
         else:
             action = agent.select_action(state)  # Sample action from policy
-
+        obs_agent2 = env.obs_agent_two()
         if args.start_steps > total_numsteps:
             a2 = env.action_space.sample()  # Sample random action
         else:
-            a2 = opponent.select_action(state)  # Sample action from policy
+            a2 = opponent.select_action(obs_agent2)  # Sample action from policy
 
         if len(memory1) > args.batch_size:
             # Number of updates per step in environment

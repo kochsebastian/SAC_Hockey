@@ -1,6 +1,6 @@
 import os
 import subprocess
-root = "/home/sebastiankoch/SoftActorCriticRNN/"
+root = "/home/skoch/SAC_Hockey/"
 files = os.listdir(root)
 # print(files)
 dirs = [x for x in files if (("runs" in x) and os.path.isdir(root+x) and ("csv_runs" not in x ))]
