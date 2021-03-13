@@ -20,7 +20,7 @@ parser.add_argument('--env-name', default="Hockey",
                     help='Mujoco Gym environment (default: LunarLanderContinuous-v2)')
 parser.add_argument('--policy', default="Gaussian",
                     help='Policy Type: Gaussian  (default: Gaussian)')
-parser.add_argument('--gamma', type=float, default=0.95, metavar='G',
+parser.add_argument('--gamma', type=float, default=0.97, metavar='G',
                     help='discount factor for reward (default: 0.99)')
 parser.add_argument('--tau', type=float, default=0.005, metavar='G',
                     help='target smoothing coefficient(τ) (default: 0.005)')
@@ -35,19 +35,19 @@ parser.add_argument('--automatic_entropy_tuning', type=bool, default=True, metav
                     help='Automaically adjust α (default: False)')
 parser.add_argument('--seed', type=int, default=123456, metavar='N',
                     help='random seed (default: 123456)')
-parser.add_argument('--batch_size', type=int, default=4, metavar='N',
+parser.add_argument('--batch_size', type=int, default=8, metavar='N',
                     help='batch size (default: 256)')
 parser.add_argument('--num_steps', type=int, default=1000001, metavar='N',
                     help='maximum number of steps (default: 1000000)')
-parser.add_argument('--hidden_size', type=int, default=64, metavar='N',
+parser.add_argument('--hidden_size', type=int, default=512, metavar='N',
                     help='hidden size (default: 256)')
 parser.add_argument('--updates_per_step', type=int, default=1, metavar='N',
                     help='model updates per simulator step (default: 1)')
 parser.add_argument('--start_steps', type=int, default=10000, metavar='N',
                     help='Steps sampling random actions (default: 10000)')
-parser.add_argument('--target_update_interval', type=int, default=1, metavar='N',
+parser.add_argument('--target_update_interval', type=int, default=5, metavar='N',
                     help='Value target update per no. of updates per step (default: 1)')
-parser.add_argument('--replay_size', type=int, default=1000000, metavar='N',
+parser.add_argument('--replay_size', type=int, default=10000000, metavar='N',
                     help='size of replay buffer (default: 10000000)')
 
 args = parser.parse_args()
@@ -58,17 +58,19 @@ args.cuda = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 env = h_env.HockeyEnv(mode=h_env.HockeyEnv.NORMAL)
 # Agent
 agent = SAC(env.observation_space.shape[0], env.action_space, args)
+actor = 'full_player_models/sac_actor_hockeyStrongPRE_reward-9.276149031624445_episode-65000_batch_size-4_gamma-0.97_tau-0.005_lr-0.0003_alpha-0.1_tuning-True_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-5_replaysize-10000000_t-2021-03-12_08-54-39'
+critic = 'full_player_models/sac_critic_hockeyStrongPRE_reward-9.276149031624445_episode-65000_batch_size-4_gamma-0.97_tau-0.005_lr-0.0003_alpha-0.1_tuning-True_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-5_replaysize-10000000_t-2021-03-12_08-54-39'
 
-agent.load_model('full_player_models/sac_actor_hockey_11200_batch_size-4_gamma-0.95_tau-0.005_lr-0.0003_alpha-0.2_tuning-True_hidden_size-256_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-1000000','full_player_models/sac_critic_hockey_11200_batch_size-4_gamma-0.95_tau-0.005_lr-0.0003_alpha-0.2_tuning-True_hidden_size-256_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-1000000')
+agent.load_model(actor,critic)
 opponent = copy.deepcopy(agent)
 basic_strong = h_env.BasicOpponent(weak=False)
 time_ = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 #Tesnorboard
-writer = SummaryWriter(f"selfstrongplay-runs/prio{time_}_batch_size-{args.batch_size}_gamma-{args.gamma}_tau-{args.tau}_lr-{args.lr}_alpha-{args.alpha}_tuning-{args.automatic_entropy_tuning}_hidden_size-{args.hidden_size}_updatesStep-{args.updates_per_step}_startSteps-{args.start_steps}_targetIntervall-{args.target_update_interval}_replaysize-{args.replay_size}")
+writer = SummaryWriter(f"selfplay-final-runs/5000updates{time_}_batch_size-{args.batch_size}_gamma-{args.gamma}_tau-{args.tau}_lr-{args.lr}_alpha-{args.alpha}_tuning-{args.automatic_entropy_tuning}_hidden_size-{args.hidden_size}_updatesStep-{args.updates_per_step}_startSteps-{args.start_steps}_targetIntervall-{args.target_update_interval}_replaysize-{args.replay_size}")
 
 # Memory
-memory = PrioritizedReplay(args.replay_size)
-# memory = ReplayMemory(args.replay_size,args.seed)
+# memory = PrioritizedReplay(args.replay_size)
+memory = ReplayMemory(args.replay_size,args.seed)
 
 # Training Loop
 total_numsteps = 0
@@ -107,7 +109,7 @@ for i_episode in itertools.count(1):
 
         # a2 = [10,0.,0,0] 
         obs_agent2 = env.obs_agent_two()
-        if i_episode % 4 != 0:
+        if i_episode % 2 != 0:
             a2 = opponent.select_action(obs_agent2, evaluate=True)
         else:
             a2 = basic_strong.act(obs_agent2)
@@ -137,7 +139,7 @@ for i_episode in itertools.count(1):
 
     if i_episode % 10 == 0:
         avg_reward = 0.
-        episodes = 5
+        episodes = 6
         for k  in range(episodes):
             state = env.reset()
             episode_reward = 0
@@ -161,7 +163,7 @@ for i_episode in itertools.count(1):
 
         if i_episode%500==0:
             time_ = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-            agent.save_model( "selfstrongplay_models_prio", "hockey", suffix=f"reward-{avg_reward}_episode-"+str(i_episode)+f"_batch_size-{args.batch_size}_gamma-{args.gamma}_tau-{args.tau}_lr-{args.lr}_alpha-{args.alpha}_tuning-{args.automatic_entropy_tuning}_hidden_size-{args.hidden_size}_updatesStep-{args.updates_per_step}_startSteps-{args.start_steps}_targetIntervall-{args.target_update_interval}_replaysize-{args.replay_size}_t-{time_}")
+            agent.save_model( "final-models", "5000updates_hockey", suffix=f"reward-{avg_reward}_episode-"+str(i_episode)+f"_batch_size-{args.batch_size}_gamma-{args.gamma}_tau-{args.tau}_lr-{args.lr}_alpha-{args.alpha}_tuning-{args.automatic_entropy_tuning}_hidden_size-{args.hidden_size}_updatesStep-{args.updates_per_step}_startSteps-{args.start_steps}_targetIntervall-{args.target_update_interval}_replaysize-{args.replay_size}_t-{time_}")
         if i_episode%5000==0:
             opponent.policy.load_state_dict(agent.policy.state_dict())
             opponent.critic.load_state_dict(agent.critic.state_dict())
