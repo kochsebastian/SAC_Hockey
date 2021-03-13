@@ -15,13 +15,11 @@ from torch.utils.tensorboard import SummaryWriter
 from replay_memory import ReplayMemory
 import copy
 
-parser = argparse.ArgumentParser(description='PyTorch Soft Actor-Critic Args')
+parser = argparse.ArgumentParser(description='Soft Actor-Critic Args')
 parser.add_argument('--env-name', default="Hockey",
-                    help='Mujoco Gym environment (default: HalfCheetah-v2)')
+                    help='Mujoco Gym environment (default: LunarLanderContinuous-v2)')
 parser.add_argument('--policy', default="Gaussian",
-                    help='Policy Type: Gaussian | Deterministic (default: Gaussian)')
-parser.add_argument('--eval', type=bool, default=True,
-                    help='Evaluates a policy a policy every 10 episode (default: True)')
+                    help='Policy Type: Gaussian (default: Gaussian)')
 parser.add_argument('--gamma', type=float, default=0.95, metavar='G',
                     help='discount factor for reward (default: 0.99)')
 parser.add_argument('--tau', type=float, default=0.005, metavar='G',
@@ -51,11 +49,10 @@ parser.add_argument('--target_update_interval', type=int, default=1, metavar='N'
                     help='Value target update per no. of updates per step (default: 1)')
 parser.add_argument('--replay_size', type=int, default=1000000, metavar='N',
                     help='size of replay buffer (default: 10000000)')
-parser.add_argument('--cuda', action="store_true",
-                    help='run on CUDA (default: False)')
-parser.add_argument('--train', action="store_true",
-                    help='placeholder')
+
 args = parser.parse_args()
+
+args.cuda = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
 env = h_env.HockeyEnv(mode=h_env.HockeyEnv.TRAIN_DEFENSE)
@@ -138,7 +135,7 @@ for i_episode in itertools.count(1):
     writer.add_scalar('reward/train', episode_reward, i_episode)
     print("Episode: {}, total numsteps: {}, episode steps: {}, reward: {}".format(i_episode, total_numsteps, episode_steps, round(episode_reward, 2)))
 
-    if i_episode % 10 == 0 and args.eval is True:
+    if i_episode % 10 == 0:
         avg_reward = 0.
         episodes = 5
         for _  in range(episodes):

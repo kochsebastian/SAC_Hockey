@@ -14,9 +14,9 @@ def weights_init_(m):
         torch.nn.init.constant_(m.bias, 0)
 
 
-class SoftQNetwork(nn.Module):
+class Critic(nn.Module):
     def __init__(self, num_inputs, num_actions, hidden_dim):
-        super(SoftQNetwork, self).__init__()
+        super(Critic, self).__init__()
 
         # Q1 architecture
         self.linear1 = nn.Linear(num_inputs + num_actions, hidden_dim)
@@ -68,9 +68,9 @@ class SoftQNetwork(nn.Module):
         return x1, x2
 
 
-class PolicyNetwork(nn.Module):
+class Actor(nn.Module):
     def __init__(self, num_inputs, num_actions, hidden_dim, action_space=None):
-        super(PolicyNetwork, self).__init__()
+        super(Actor, self).__init__()
         
         self.linear1 = nn.Linear(num_inputs, hidden_dim)
         self.linear2 = nn.Linear(num_inputs+num_actions, hidden_dim)
@@ -141,45 +141,5 @@ class PolicyNetwork(nn.Module):
     def to(self, device):
         self.action_scale = self.action_scale.to(device)
         self.action_bias = self.action_bias.to(device)
-        return super(PolicyNetwork, self).to(device)
+        return super(Actor, self).to(device)
 
-
-# class DeterministicPolicy(nn.Module):
-#     def __init__(self, num_inputs, num_actions, hidden_dim, action_space=None):
-#         super(DeterministicPolicy, self).__init__()
-#         self.linear1 = nn.Linear(num_inputs, hidden_dim)
-#         self.linear2 = nn.Linear(hidden_dim, hidden_dim)
-
-#         self.mean = nn.Linear(hidden_dim, num_actions)
-#         self.noise = torch.Tensor(num_actions)
-
-#         self.apply(weights_init_)
-
-#         # action rescaling
-#         if action_space is None:
-#             self.action_scale = 1.
-#             self.action_bias = 0.
-#         else:
-#             self.action_scale = torch.FloatTensor(
-#                 (action_space.high - action_space.low) / 2.)
-#             self.action_bias = torch.FloatTensor(
-#                 (action_space.high + action_space.low) / 2.)
-
-#     def forward(self, state):
-#         x = F.relu(self.linear1(state))
-#         x = F.relu(self.linear2(x))
-#         mean = torch.tanh(self.mean(x)) * self.action_scale + self.action_bias
-#         return mean
-
-#     def sample(self, state):
-#         mean = self.forward(state)
-#         noise = self.noise.normal_(0., std=0.1)
-#         noise = noise.clamp(-0.25, 0.25)
-#         action = mean + noise
-#         return action, torch.tensor(0.), mean
-
-#     def to(self, device):
-#         self.action_scale = self.action_scale.to(device)
-#         self.action_bias = self.action_bias.to(device)
-#         self.noise = self.noise.to(device)
-#         return super(DeterministicPolicy, self).to(device)
