@@ -23,7 +23,7 @@ class SAC(object):
         self.critic_optim = Adam(self.critic.parameters(), lr=args.lr)
 
         self.critic_target = Critic(num_inputs, action_space.shape[0], args.hidden_size).to(self.device)
-        hard_update(self.critic_target, self.critic)
+        self.hard_update(self.critic_target, self.critic)
 
 
         if self.policy_type == "Gaussian":
