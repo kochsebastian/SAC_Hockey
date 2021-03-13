@@ -58,14 +58,15 @@ args = parser.parse_args()
 env = h_env.HockeyEnv(mode=h_env.HockeyEnv.NORMAL)
 # Agent
 agent = SAC(env.observation_space.shape[0], env.action_space, args)
-actor = "strongplay_models_alpha/sac_actor_hockeyStrongPRE_reward-9.590869141533414_episode-38500_batch_size-4_gamma-0.97_tau-0.005_lr-0.0003_alpha-0.01_tuning-False_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-10000000_t-2021-03-12_07-25-54"
-critic = "strongplay_models_alpha/sac_critic_hockeyStrongPRE_reward-9.590869141533414_episode-38500_batch_size-4_gamma-0.97_tau-0.005_lr-0.0003_alpha-0.01_tuning-False_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-10000000_t-2021-03-12_07-25-54"
+
+actor = "duelplay_models_1/sac_actor_hockey_reward--4.0_episode-24500_batch_size-4_gamma-0.97_tau-0.005_lr-0.0003_alpha-0.1_tuning-False_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-10000000_t-2021-03-13_10-27-59"
+critic = "duelplay_models_1/sac_critic_hockey_reward--4.0_episode-24500_batch_size-4_gamma-0.97_tau-0.005_lr-0.0003_alpha-0.1_tuning-False_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-10000000_t-2021-03-13_10-27-59"
 agent.load_model(actor,critic)
 
-args.hidden_size=256
+# this model really has alpha flase
 opponent = SAC(env.observation_space.shape[0], env.action_space, args)
-o_actor = "selfplay_models/sac_actor_hockeySelf_reward-9.742666643080318_episode-132700_batch_size-4_gamma-0.95_tau-0.005_lr-0.0003_alpha-0.2_tuning-True_hidden_size-256_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-1000000_t-2021-03-10_14-54-00"
-o_critic = "selfplay_models/sac_critic_hockeySelf_reward-9.742666643080318_episode-132700_batch_size-4_gamma-0.95_tau-0.005_lr-0.0003_alpha-0.2_tuning-True_hidden_size-256_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-1000000_t-2021-03-10_14-54-00"
+o_actor = "duelplay_models_2/sac_actor_hockey_reward-4.0_episode-24500_batch_size-4_gamma-0.97_tau-0.005_lr-0.0003_alpha-0.1_tuning-False_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-10000000_t-2021-03-13_10-27-59"
+o_critic = "duelplay_models_2/sac_critic_hockey_reward-4.0_episode-24500_batch_size-4_gamma-0.97_tau-0.005_lr-0.0003_alpha-0.1_tuning-False_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-10000000_t-2021-03-13_10-27-59"
 opponent.load_model(o_actor,o_critic)
 
 
