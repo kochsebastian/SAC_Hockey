@@ -66,7 +66,7 @@ opponent = copy.deepcopy(agent)
 basic_strong = h_env.BasicOpponent(weak=False)
 time_ = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 #Tesnorboard
-writer = SummaryWriter(f"selfplay-final-runs/5000updates{time_}_batch_size-{args.batch_size}_gamma-{args.gamma}_tau-{args.tau}_lr-{args.lr}_alpha-{args.alpha}_tuning-{args.automatic_entropy_tuning}_hidden_size-{args.hidden_size}_updatesStep-{args.updates_per_step}_startSteps-{args.start_steps}_targetIntervall-{args.target_update_interval}_replaysize-{args.replay_size}")
+writer = SummaryWriter(f"selfplay-final-runs/500updates{time_}_batch_size-{args.batch_size}_gamma-{args.gamma}_tau-{args.tau}_lr-{args.lr}_alpha-{args.alpha}_tuning-{args.automatic_entropy_tuning}_hidden_size-{args.hidden_size}_updatesStep-{args.updates_per_step}_startSteps-{args.start_steps}_targetIntervall-{args.target_update_interval}_replaysize-{args.replay_size}")
 
 # Memory
 # memory = PrioritizedReplay(args.replay_size)
@@ -79,7 +79,7 @@ updates = 0
 
 o = env.reset()
 # _ = env.render()
-
+last_avg=0
 for i_episode in itertools.count(1):
     episode_reward = 0
     episode_steps = 0
@@ -109,7 +109,7 @@ for i_episode in itertools.count(1):
 
         # a2 = [10,0.,0,0] 
         obs_agent2 = env.obs_agent_two()
-        if i_episode % 2 != 0:
+        if i_episode % 3 != 0:
             a2 = opponent.select_action(obs_agent2, evaluate=True)
         else:
             a2 = basic_strong.act(obs_agent2)
@@ -137,9 +137,9 @@ for i_episode in itertools.count(1):
     writer.add_scalar('reward/train', episode_reward, i_episode)
     print("Episode: {}, total numsteps: {}, episode steps: {}, reward: {}".format(i_episode, total_numsteps, episode_steps, round(episode_reward, 2)))
 
-    if i_episode % 10 == 0:
+    if i_episode % 13 == 0:
         avg_reward = 0.
-        episodes = 6
+        episodes = 9
         for k  in range(episodes):
             state = env.reset()
             episode_reward = 0
@@ -148,7 +148,7 @@ for i_episode in itertools.count(1):
                 
                 action = agent.select_action(state, evaluate=True)
                 obs_agent2 = env.obs_agent_two()
-                if k < 4: 
+                if k %3 !=0: 
                     a2 = opponent.select_action(obs_agent2, evaluate=True)
                 else:
                     a2 = basic_strong.act(obs_agent2)
@@ -160,19 +160,21 @@ for i_episode in itertools.count(1):
                 state = next_state
             avg_reward += episode_reward
         avg_reward /= episodes
+        last_avg = avg_reward
 
-        if i_episode%500==0:
-            time_ = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-            agent.save_model( "final-models", "5000updates_hockey_256_t1", suffix=f"reward-{avg_reward}_episode-"+str(i_episode)+f"_batch_size-{args.batch_size}_gamma-{args.gamma}_tau-{args.tau}_lr-{args.lr}_alpha-{args.alpha}_tuning-{args.automatic_entropy_tuning}_hidden_size-{args.hidden_size}_updatesStep-{args.updates_per_step}_startSteps-{args.start_steps}_targetIntervall-{args.target_update_interval}_replaysize-{args.replay_size}_t-{time_}")
-        if i_episode%5000==0:
-            opponent.policy.load_state_dict(agent.policy.state_dict())
-            opponent.critic.load_state_dict(agent.critic.state_dict())
-            opponent.critic_target.load_state_dict(agent.critic_target.state_dict())
+        
         writer.add_scalar('avg_reward/test', avg_reward, i_episode)
 
         print("----------------------------------------")
         print("Test Episodes: {}, Avg. Reward: {}".format(episodes, round(avg_reward, 2)))
         print("----------------------------------------")
+    if i_episode%500==0:
+        time_ = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+        agent.save_model( "final-models", "500updates_hockey_256_t1", suffix=f"reward-{last_avg}_episode-"+str(i_episode)+f"_batch_size-{args.batch_size}_gamma-{args.gamma}_tau-{args.tau}_lr-{args.lr}_alpha-{args.alpha}_tuning-{args.automatic_entropy_tuning}_hidden_size-{args.hidden_size}_updatesStep-{args.updates_per_step}_startSteps-{args.start_steps}_targetIntervall-{args.target_update_interval}_replaysize-{args.replay_size}_t-{time_}")
+    if i_episode%500==0:
+        opponent.policy.load_state_dict(agent.policy.state_dict())
+        opponent.critic.load_state_dict(agent.critic.state_dict())
+        opponent.critic_target.load_state_dict(agent.critic_target.state_dict())
 
 env.close()
 
