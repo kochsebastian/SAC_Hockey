@@ -15,14 +15,12 @@ from prio_replay_memory import PrioritizedReplay
 from replay_memory import ReplayMemory
 import copy
 
-parser = argparse.ArgumentParser(description='PyTorch Soft Actor-Critic Args')
+parser = argparse.ArgumentParser(description='Soft Actor-Critic Args')
 parser.add_argument('--env-name', default="Hockey",
-                    help='Mujoco Gym environment (default: HalfCheetah-v2)')
+                    help='Mujoco Gym environment (default: LunarLanderContinuous-v2)')
 parser.add_argument('--policy', default="Gaussian",
-                    help='Policy Type: Gaussian | Deterministic (default: Gaussian)')
-parser.add_argument('--eval', type=bool, default=True,
-                    help='Evaluates a policy a policy every 10 episode (default: True)')
-parser.add_argument('--gamma', type=float, default=0.97, metavar='G',
+                    help='Policy Type: Gaussian  (default: Gaussian)')
+parser.add_argument('--gamma', type=float, default=0.95, metavar='G',
                     help='discount factor for reward (default: 0.99)')
 parser.add_argument('--tau', type=float, default=0.005, metavar='G',
                     help='target smoothing coefficient(τ) (default: 0.005)')
@@ -39,9 +37,9 @@ parser.add_argument('--seed', type=int, default=123456, metavar='N',
                     help='random seed (default: 123456)')
 parser.add_argument('--batch_size', type=int, default=4, metavar='N',
                     help='batch size (default: 256)')
-parser.add_argument('--num_steps', type=int, default=10000001, metavar='N',
+parser.add_argument('--num_steps', type=int, default=1000001, metavar='N',
                     help='maximum number of steps (default: 1000000)')
-parser.add_argument('--hidden_size', type=int, default=256, metavar='N',
+parser.add_argument('--hidden_size', type=int, default=64, metavar='N',
                     help='hidden size (default: 256)')
 parser.add_argument('--updates_per_step', type=int, default=1, metavar='N',
                     help='model updates per simulator step (default: 1)')
@@ -49,13 +47,12 @@ parser.add_argument('--start_steps', type=int, default=10000, metavar='N',
                     help='Steps sampling random actions (default: 10000)')
 parser.add_argument('--target_update_interval', type=int, default=1, metavar='N',
                     help='Value target update per no. of updates per step (default: 1)')
-parser.add_argument('--replay_size', type=int, default=10000000, metavar='N',
+parser.add_argument('--replay_size', type=int, default=1000000, metavar='N',
                     help='size of replay buffer (default: 10000000)')
-parser.add_argument('--cuda', action="store_true",
-                    help='run on CUDA (default: False)')
-parser.add_argument('--train', action="store_true",
-                    help='placeholder')
+
 args = parser.parse_args()
+
+args.cuda = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
 env = h_env.HockeyEnv(mode=h_env.HockeyEnv.NORMAL)
@@ -138,7 +135,7 @@ for i_episode in itertools.count(1):
     writer.add_scalar('reward/train', episode_reward, i_episode)
     print("Episode: {}, total numsteps: {}, episode steps: {}, reward: {}".format(i_episode, total_numsteps, episode_steps, round(episode_reward, 2)))
 
-    if i_episode % 10 == 0 and args.eval is True:
+    if i_episode % 10 == 0:
         avg_reward = 0.
         episodes = 5
         for k  in range(episodes):

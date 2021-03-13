@@ -83,11 +83,21 @@ def rolling_window(a, window):
     return np.lib.stride_tricks.as_strided(a, shape=shape, strides=strides)
 
 
-def plot(data_sets, title, algorithm, label, dir,xlimit=2000):
+
+def plot(data_sets, title, algorithm, label, dir,xlimit=31000):
+    data_sets[0], data_sets[1] = data_sets[1], data_sets[0]
+    algorithm[0][0], algorithm[0][1] = algorithm[0][1], algorithm[0][0]
+
+    plot1(data_sets, title, algorithm, label, dir,xlimit)
+    plot2(data_sets, title, algorithm, label, dir,xlimit)
+    plt.show()
+    
+def plot1(data_sets, title, algorithm, label, dir,xlimit):
     fig = plt.figure(1,figsize=(8,8))
     # plt.clf()
     # plt.subplot(111)
     ax1 = plt.gca()
+    
     plt.ticklabel_format(style='sci', axis='x',useOffset=False, scilimits=(0,0))
     max_ = -100000
     for idx, data in enumerate(data_sets):
@@ -104,23 +114,63 @@ def plot(data_sets, title, algorithm, label, dir,xlimit=2000):
 
 
         color = next(ax1._get_lines.prop_cycler)['color']
-        ax = data.plot(x='Environment Steps', y=label,alpha=0.5,color=color,label=algorithm[0][idx],figsize=(15, 8),ax = ax1)
-        smoothed.plot(x='Environment Steps', y=label,alpha=1.0,color=color,ax = ax1,label='')
+        ax = data.plot(x='Environment Steps', y=label,alpha=0.25,color=color,label=algorithm[0][idx],figsize=(15, 8),ax = ax1)
+        smoothed.plot(x='Environment Steps', y=label,alpha=1.0,color=color,ax = ax1,label='',linewidth=2.0)
         
         # color = next(ax1._get_lines.prop_cycler)['color']
         # plt.fill_between(data.values[...,0], smoothed.values[...,1]-std, smoothed.values[...,1]+std,color=color,alpha=0.5)
         # plt.fill_between(data.values[...,0], smoothed.values[...,1]-std, smoothed.values[...,1]+std,color=color,alpha=0.5)
     
     extratick = [max_]
-    plt.yticks(list(plt.yticks()[0])[1:-1]+extratick)
-    ax.set_ylabel(label)
+    plt.yticks(list(plt.yticks()[0])[1:-2]+extratick)
+    ax.set_ylabel("avg reward")
     plt.title(title, fontsize=15)
     ax.yaxis.label.set_size(15)
     ax.xaxis.label.set_size(15)
 
-    plt.legend(loc='lower right',fontsize=15)
-    plt.savefig("test.png", dpi=600)
-    plt.show()
+    plt.legend(loc='lower right',fontsize=13)
+    plt.savefig(dir+title+'.png', dpi=600)
+    # plt.show()
+
+def plot2(data_sets, title, algorithm, label, dir,xlimit):
+    fig = plt.figure(2,figsize=(8,8))
+    # plt.clf()
+    # plt.subplot(111)
+    ax1 = plt.gca()
+    
+    plt.ticklabel_format(style='sci', axis='x',useOffset=False, scilimits=(0,0))
+    max_ = -100000
+    for idx, data in enumerate(data_sets):
+        plt.figure(2)
+        data=data.astype(float)
+        if xlimit!=None:
+            data = data.drop(data[data.values[...,0] > xlimit].index)
+        
+        smoothed = data.copy()
+        smoothed.values[...,1] = smooth(smoothed.values[...,1],0.9)
+        max_ = max(np.amax(data.values[...,1]),max_)
+
+        std = np.std(rolling_window(data.values[...,1], 30), axis=-1)
+
+
+        color = next(ax1._get_lines.prop_cycler)['color']
+        ax = data.plot(x='Environment Steps', y=label,alpha=0.25,color=color,label=algorithm[0][idx],figsize=(8, 8),ax = ax1)
+        smoothed.plot(x='Environment Steps', y=label,alpha=1.0,color=color,ax = ax1,label='',linewidth=2.0)
+        
+        # color = next(ax1._get_lines.prop_cycler)['color']
+        # plt.fill_between(data.values[...,0], smoothed.values[...,1]-std, smoothed.values[...,1]+std,color=color,alpha=0.5)
+        # plt.fill_between(data.values[...,0], smoothed.values[...,1]-std, smoothed.values[...,1]+std,color=color,alpha=0.5)
+    
+    extratick = [max_]
+    plt.yticks(list(plt.yticks()[0])[1:-2]+extratick)
+    ax.set_ylabel("avg reward")
+    plt.title(title, fontsize=12)
+    ax.yaxis.label.set_size(12)
+    ax.xaxis.label.set_size(12)
+
+    plt.legend(loc='lower right',fontsize=12)
+    plt.savefig(dir+title+'_square.png', dpi=600)
+    # plt.show()
 
 def chunks(l, n):
     out = []
@@ -139,8 +189,9 @@ if __name__ == '__main__':
 
     #print(args)
     num_alg = len(args.algorithm[0])
-    subdirs = os.listdir(args.logdir[0][0])
-    dirs = [args.logdir[0][0]+d for d in subdirs]
+    subdirs = sorted(os.listdir(args.logdir[0][0]))
+    subdirs_filtered = [d for d in subdirs if ".csv" in d]
+    dirs = [args.logdir[0][0]+d for d in subdirs_filtered]
     assert len(dirs) % num_alg == 0, "Algorithm need the same amount of training runs!"
     assert len(args.label[0]) ==  len(args.title[0]), "Not enough titles for the plots. If you compare more than one label you need different titles for each plot!"
 

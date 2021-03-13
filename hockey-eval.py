@@ -11,16 +11,14 @@ import itertools
 import torch
 from sac_better import SAC
 from torch.utils.tensorboard import SummaryWriter
-# from prio_replay_memory import PrioritizedReplay
+from prio_replay_memory import PrioritizedReplay
 from replay_memory import ReplayMemory
 
-parser = argparse.ArgumentParser(description='PyTorch Soft Actor-Critic Args')
+parser = argparse.ArgumentParser(description='Soft Actor-Critic Args')
 parser.add_argument('--env-name', default="Hockey",
-                    help='Mujoco Gym environment (default: HalfCheetah-v2)')
+                    help='Gym environment')
 parser.add_argument('--policy', default="Gaussian",
-                    help='Policy Type: Gaussian | Deterministic (default: Gaussian)')
-parser.add_argument('--eval', type=bool, default=True,
-                    help='Evaluates a policy a policy every 10 episode (default: True)')
+                    help='Policy Type: Gaussian (default: Gaussian)')
 parser.add_argument('--gamma', type=float, default=0.95, metavar='G',
                     help='discount factor for reward (default: 0.99)')
 parser.add_argument('--tau', type=float, default=0.005, metavar='G',
@@ -48,12 +46,10 @@ parser.add_argument('--target_update_interval', type=int, default=1, metavar='N'
                     help='Value target update per no. of updates per step (default: 1)')
 parser.add_argument('--replay_size', type=int, default=1000000, metavar='N',
                     help='size of replay buffer (default: 10000000)')
-parser.add_argument('--cuda', action="store_true",
-                    help='run on CUDA (default: False)')
-parser.add_argument('--train', action="store_true",
-                    help='placeholder')
+
 args = parser.parse_args()
 
+args.cuda = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 env = h_env.HockeyEnv(mode=h_env.HockeyEnv.NORMAL)
 # Agent

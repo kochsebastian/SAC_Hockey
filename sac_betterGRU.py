@@ -2,8 +2,8 @@ import os
 import torch
 import torch.nn.functional as F
 from torch.optim import Adam
-from utils import soft_update, hard_update
-from model_gru import PolicyNetwork, SoftQNetwork
+from policies import Actor
+from softqnetwork import Critic
 import numpy as np
 
 class SAC(object):
@@ -19,28 +19,32 @@ class SAC(object):
 
         self.device = torch.device("cuda" if args.cuda else "cpu")
 
-        self.critic = SoftQNetwork(num_inputs, action_space.shape[0], args.hidden_size).to(device=self.device)
+        self.critic = Critic(num_inputs, action_space.shape[0], args.hidden_size).to(device=self.device)
         self.critic_optim = Adam(self.critic.parameters(), lr=args.lr)
 
-        self.critic_target = SoftQNetwork(num_inputs, action_space.shape[0], args.hidden_size).to(self.device)
+        self.critic_target = Critic(num_inputs, action_space.shape[0], args.hidden_size).to(self.device)
         hard_update(self.critic_target, self.critic)
 
 
         if self.policy_type == "Gaussian":
-            # Target Entropy = −dim(A) (e.g. , -6 for HalfCheetah-v2) as given in the paper
             if self.automatic_entropy_tuning is True:
                 self.target_entropy = -torch.prod(torch.Tensor(action_space.shape).to(self.device)).item()
                 self.log_alpha = torch.zeros(1, requires_grad=True, device=self.device)
                 self.alpha_optim = Adam([self.log_alpha], lr=args.lr)
 
-            self.policy = PolicyNetwork(num_inputs, action_space.shape[0], args.hidden_size, action_space).to(self.device)
+            self.policy = Actor(num_inputs, action_space.shape[0], args.hidden_size, action_space).to(self.device)
             self.policy_optim = Adam(self.policy.parameters(), lr=args.lr)
 
         else:
-            self.alpha = 0
-            self.automatic_entropy_tuning = False
-            self.policy = DeterministicPolicy(num_inputs, action_space.shape[0], args.hidden_size, action_space).to(self.device)
-            self.policy_optim = Adam(self.policy.parameters(), lr=args.lr)
+            raise NotImplementedError
+    
+    def soft_update(self, target, source, tau):
+        for target_param, param in zip(target.parameters(), source.parameters()):
+            target_param.data.copy_(target_param.data * (1.0 - tau) + param.data * tau)
+
+    def hard_update(self,target, source):
+        for target_param, param in zip(target.parameters(), source.parameters()):
+            target_param.data.copy_(param.data)
 
     def select_action(self, state, last_action, hidden_in, evaluate=False):
         state = torch.FloatTensor(state).to(self.device).unsqueeze(0).unsqueeze(0)
@@ -127,7 +131,11 @@ class SAC(object):
 
 
         if updates % self.target_update_interval == 0:
-            soft_update(self.critic_target, self.critic, self.tau)
+            if self.tau == 1:
+                self.hard_update(self.critic_target,self.critic)
+            else:
+                self.soft_update(self.critic_target, self.critic, self.tau)
+        
 
         return qf1_loss.item(), qf2_loss.item(), policy_loss.item(), alpha_loss.item(), alpha_tlogs.item()
 
