@@ -114,6 +114,7 @@ for i_episode in itertools.count(1):
         else:
             a2 = basic_strong.act(obs_agent2)
         next_state, reward, done, _ = env.step(np.hstack([action[0:4],a2[0:4]])) 
+        # env.render()
         
         # env.render()
         episode_steps += 1
@@ -134,7 +135,7 @@ for i_episode in itertools.count(1):
     if total_numsteps > args.num_steps:
         break
 
-    writer.add_scalar('reward/train', episode_reward, i_episode)
+    # writer.add_scalar('reward/train', episode_reward, i_episode)
     print("Episode: {}, total numsteps: {}, episode steps: {}, reward: {}".format(i_episode, total_numsteps, episode_steps, round(episode_reward, 2)))
 
     if i_episode % 13 == 0:
