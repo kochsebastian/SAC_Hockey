@@ -1,6 +1,6 @@
 import numpy
 
-# basic sum tree implementation 
+# basic sum tree implementation - not used yet
 # source: https://github.com/rlcode/per/blob/master/SumTree.py
 class SumTree:
     write = 0

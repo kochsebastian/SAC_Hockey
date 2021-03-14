@@ -5,9 +5,6 @@ from sum_tree import SumTree
 
 # Without sumtree
 class PrioritizedReplay(object):
-    """
-    Proportional Prioritization
-    """
     def __init__(self, capacity, alpha= 0.6, beta_start = 0.4, beta_steps=100000):
         self.alpha = alpha
         self.beta_start = beta_start
@@ -19,14 +16,7 @@ class PrioritizedReplay(object):
         self.priorities = np.zeros((capacity,), dtype=np.float32)
     
     def beta_by_step(self, step_idx):
-        """
-        Linearly increases beta from beta_start to 1 over time from 1 to beta_steps.
-        
-        ANNEALING THE BIAS
-        We therefore exploit the flexibility of annealing the amount of importance-sampling
-        correction over time, by defining a schedule on the exponent 
-        that reaches 1 only at the end of learning. In practice, we linearly anneal from its initial value 0 to 1
-        """
+        # ANNEALING THE BIAS: Linearly increases beta from beta_start to 1 over time from 1 to beta_steps.
         return min(1.0, self.beta_start + step_idx * (1.0 - self.beta_start) / self.beta_steps)
     
     def push(self, state, action, reward, next_state, done):
@@ -38,8 +28,7 @@ class PrioritizedReplay(object):
         if len(self.buffer) < self.capacity:
             self.buffer.append((state, action, reward, next_state, done))
         else:
-            # puts the new data on the position of the oldes since it circles via pos variable
-            # since if len(buffer) == capacity -> pos == 0 -> oldest memory 
+            # buffer full, replace oldest mem
             self.buffer[self.pos] = (state, action, reward, next_state, done) 
         
         self.priorities[self.pos] = max_prio
@@ -52,11 +41,11 @@ class PrioritizedReplay(object):
         else:
             prios = self.priorities[:self.pos]
             
-        # calc P = p^a/sum(p^a)
+        # P = p^a/sum(p^a)
         probs  = prios ** self.alpha
         P = probs/probs.sum()
         
-        #gets the indices depending on the probability p
+        # choose by prob
         indices = np.random.choice(N, batch_size, p=P) 
         samples = [self.buffer[idx] for idx in indices]
         
@@ -65,7 +54,7 @@ class PrioritizedReplay(object):
                 
         #Compute importance-sampling weight
         weights  = (N * P[indices]) ** (-beta)
-        # normalize weights
+        
         weights /= weights.max() 
         weights  = np.array(weights, dtype=np.float32) 
         

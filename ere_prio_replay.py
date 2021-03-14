@@ -5,14 +5,10 @@ from prio_replay_memory import PrioritizedReplay as PRE_PrioritizedReplay
 
 # without sum tree
 class PrioritizedReplay(PRE_PrioritizedReplay):
-    """
-    Proportional Prioritization
-    """
     def __init__(self, capacity, alpha=0.6, beta_start = 0.4, beta_steps=100000):
         PRE_PrioritizedReplay.__init__(self, capacity, alpha, beta_start, beta_steps)
         self.buffer     = deque(maxlen=capacity)
         self.priorities = deque(maxlen=capacity)
-    
     
     def push(self, state, action, reward, next_state, done):
         state      = np.expand_dims(state, 0)
@@ -23,8 +19,8 @@ class PrioritizedReplay(PRE_PrioritizedReplay):
         self.buffer.insert(0, (state, action, reward, next_state, done))
         self.priorities.insert(0, max_prio)
     
-    
     def sample(self, batch_size, c_k):
+        # ere diff
         N = len(self.buffer)
         if c_k > N:
             c_k = N
@@ -34,8 +30,9 @@ class PrioritizedReplay(PRE_PrioritizedReplay):
         else:
             prios = np.array(list(self.priorities)[:c_k])
         
-        #(prios)
-        # calc P = p^a/sum(p^a)
+        # pre 
+
+        # P = p^a/sum(p^a)
         probs  = prios ** self.alpha
         P = probs/probs.sum()
         

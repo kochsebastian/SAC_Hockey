@@ -9,7 +9,7 @@ dirs = [x for x in files if (("runs" in x) and os.path.isdir(root+x) and ("csv_r
 for dir_ in dirs:
     pass
 #     command+=dir_+":"+root+dir_+","
-    subprocess.Popen(['interminal', 'echo','hello'])
+    subprocess.Popen(['interminal', 'tensorboard','--logdir',root+dir_])
 
 # print(command)
 # os.system(command)

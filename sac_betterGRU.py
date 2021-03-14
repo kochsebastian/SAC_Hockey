@@ -64,6 +64,8 @@ class SAC(object):
         pad_action = np.zeros(action_batch[0][0].shape, dtype="float32")
         pad_reward = state_batch[]
         pad_done = 1.0
+
+        # pad shorter episodes
         for i,s in enumerate(state_batch):
             l = len(s)
             if pad_batch-l==0:
@@ -89,28 +91,28 @@ class SAC(object):
             next_state_action, next_state_log_pi, _, _ = self.policy.sample(next_state_batch, last_action_batch, hidden_in_batch)
             new_next_state_action, new_next_state_log_pi, _, _ = self.policy.sample(next_state_batch, action_batch, hidden_out_batch)
            
-            qf1_next_target, qf2_next_target = self.critic_target(next_state_batch, new_next_state_action, action_batch, hidden_out_batch)
+            q1_next_target, q2_next_target = self.critic_target(next_state_batch, new_next_state_action, action_batch, hidden_out_batch)
             
-            min_qf_next_target = torch.min(qf1_next_target, qf2_next_target) - self.alpha * next_state_log_pi
-            next_q_value = reward_batch + mask_batch * self.gamma * (min_qf_next_target)
+            min_q_next_target = torch.min(q1_next_target, q2_next_target) - self.alpha * next_state_log_pi
+            next_q_value = reward_batch + mask_batch * self.gamma * (min_q_next_target)
         
-        qf1, qf2 = self.critic(state_batch, action_batch, last_action_batch, hidden_in_batch)  # Two Q-functions to mitigate positive bias in the policy improvement step
+        q1, q2 = self.critic(state_batch, action_batch, last_action_batch, hidden_in_batch)  
         
-        qf1_loss = F.mse_loss(qf1, next_q_value)  # JQ = 𝔼(st,at)~D[0.5(Q1(st,at) - r(st,at) - γ(𝔼st+1~p[V(st+1)]))^2]
-        qf2_loss = F.mse_loss(qf2, next_q_value)  # JQ = 𝔼(st,at)~D[0.5(Q1(st,at) - r(st,at) - γ(𝔼st+1~p[V(st+1)]))^2]
+        q1_loss = F.mse_loss(q1, next_q_value) 
+        q2_loss = F.mse_loss(q2, next_q_value) 
         # attention here I have dim problems
-        qf_loss = qf1_loss + qf2_loss
+        q_loss = q1_loss + q2_loss
 
         self.critic_optim.zero_grad()
-        qf_loss.backward()
+        q_loss.backward()
         self.critic_optim.step()
 
         # pi, log_pi, _ = self.policy.sample(state_batch)
 
-        qf1_pi, qf2_pi = self.critic(state_batch, next_state_action, last_action_batch, hidden_in_batch)
-        min_qf_pi = torch.min(qf1_pi, qf2_pi)
+        q1_pi, q2_pi = self.critic(state_batch, next_state_action, last_action_batch, hidden_in_batch)
+        min_q_pi = torch.min(q1_pi, q2_pi)
 
-        policy_loss = ((self.alpha * next_state_log_pi) - min_qf_pi).mean() # Jπ = 𝔼st∼D,εt∼N[α * logπ(f(εt;st)|st) − Q(st,f(εt;st))]
+        policy_loss = ((self.alpha * next_state_log_pi) - min_q_pi).mean() # Jπ = 𝔼st∼D,εt∼N[α * logπ(f(εt;st)|st) − Q(st,f(εt;st))]
 
         self.policy_optim.zero_grad()
         policy_loss.backward()
@@ -137,7 +139,7 @@ class SAC(object):
                 self.soft_update(self.critic_target, self.critic, self.tau)
         
 
-        return qf1_loss.item(), qf2_loss.item(), policy_loss.item(), alpha_loss.item(), alpha_tlogs.item()
+        return q1_loss.item(), q2_loss.item(), policy_loss.item(), alpha_loss.item(), alpha_tlogs.item()
 
     # Save model parameters
     def save_model(self, env_name, suffix="", actor_path=None, critic_path=None):
