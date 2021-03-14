@@ -43,3 +43,6 @@ duelplay_models*
 duelplay_models_*
 final-models/
 selfplay-final-runs/
+best_ofbest_models/
+finals
+selfplay-best_of-runs

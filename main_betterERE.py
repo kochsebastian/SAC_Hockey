@@ -9,9 +9,9 @@ from torch.utils.tensorboard import SummaryWriter
 from ere_prio_replay import PrioritizedReplay
 
 
-parser = argparse.ArgumentParser(description='Soft Actor-Critic Args')
+parser = argparse.ArgumentParser(description='Actor-Critic Args')
 parser.add_argument('--env-name', default="LunarLanderContinuous-v2",
-                    help='Mujoco Gym environment (default: LunarLanderContinuous-v2)')
+                    help='Gym environment (default: LunarLanderContinuous-v2)')
 parser.add_argument('--policy', default="Gaussian",
                     help='Policy Type: Gaussian  (default: Gaussian)')
 parser.add_argument('--gamma', type=float, default=0.95, metavar='G',
@@ -85,20 +85,6 @@ for i_episode in itertools.count(1):
             action = env.action_space.sample()  # Sample random action
         else:
             action = agent.select_action(state)  # Sample action from policy
-
-        # if len(memory) > args.batch_size:
-        #     # Number of updates per step in environment
-        #     for i in range(args.updates_per_step):
-        #         # Update parameters of all the networks
-        #         critic_1_loss, critic_2_loss, policy_loss, ent_loss, alpha = agent.update_parameters(memory, args.batch_size, updates)
-        #         # memory=memory_
-
-        #         writer.add_scalar('loss/critic_1', critic_1_loss, updates)
-        #         writer.add_scalar('loss/critic_2', critic_2_loss, updates)
-        #         writer.add_scalar('loss/policy', policy_loss, updates)
-        #         writer.add_scalar('loss/entropy_loss', ent_loss, updates)
-        #         writer.add_scalar('entropy_temprature/alpha', alpha, updates)
-        #         updates += 1
 
         next_state, reward, done, _ = env.step(action) # Step
         episode_steps += 1

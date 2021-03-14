@@ -17,7 +17,7 @@ import copy
 
 parser = argparse.ArgumentParser(description='Soft Actor-Critic Args')
 parser.add_argument('--env-name', default="Hockey",
-                    help='Mujoco Gym environment (default: LunarLanderContinuous-v2)')
+                    help='Gym environment (default: LunarLanderContinuous-v2)')
 parser.add_argument('--policy', default="Gaussian",
                     help='Policy Type: Gaussian  (default: Gaussian)')
 parser.add_argument('--gamma', type=float, default=0.97, metavar='G',
@@ -28,10 +28,10 @@ parser.add_argument('--lr', type=float, default=0.0003, metavar='G',
                     help='learning rate (default: 0.0003)')
 parser.add_argument('--wd', type=float, default=0.0, metavar='G',
                     help='learning rate (default: 0.0)')
-parser.add_argument('--alpha', type=float, default=0.2, metavar='G',
+parser.add_argument('--alpha', type=float, default=0.01, metavar='G',
                     help='Temperature parameter α determines the relative importance of the entropy\
                             term against the reward (default: 0.2)')
-parser.add_argument('--automatic_entropy_tuning', type=bool, default=True, metavar='G',
+parser.add_argument('--automatic_entropy_tuning', type=bool, default=False, metavar='G',
                     help='Automaically adjust α (default: False)')
 parser.add_argument('--seed', type=int, default=123456, metavar='N',
                     help='random seed (default: 123456)')
@@ -39,13 +39,13 @@ parser.add_argument('--batch_size', type=int, default=8, metavar='N',
                     help='batch size (default: 256)')
 parser.add_argument('--num_steps', type=int, default=30000001, metavar='N',
                     help='maximum number of steps (default: 1000000)')
-parser.add_argument('--hidden_size', type=int, default=256, metavar='N',
+parser.add_argument('--hidden_size', type=int, default=512, metavar='N',
                     help='hidden size (default: 256)')
 parser.add_argument('--updates_per_step', type=int, default=1, metavar='N',
                     help='model updates per simulator step (default: 1)')
 parser.add_argument('--start_steps', type=int, default=10000, metavar='N',
                     help='Steps sampling random actions (default: 10000)')
-parser.add_argument('--target_update_interval', type=int, default=1, metavar='N',
+parser.add_argument('--target_update_interval', type=int, default=5, metavar='N',
                     help='Value target update per no. of updates per step (default: 1)')
 parser.add_argument('--replay_size', type=int, default=10000000, metavar='N',
                     help='size of replay buffer (default: 10000000)')
@@ -58,15 +58,15 @@ args.cuda = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 env = h_env.HockeyEnv(mode=h_env.HockeyEnv.NORMAL)
 # Agent
 agent = SAC(env.observation_space.shape[0], env.action_space, args)
-actor = 'full_player_models/sac_actor_hockeyStrong_reward-9.222554134367115_episode-24000_batch_size-4_gamma-0.97_tau-0.005_lr-0.0003_alpha-0.2_tuning-True_hidden_size-256_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-10000000_t-2021-03-11_20-10-59'
-critic = 'full_player_models/sac_critic_hockeyStrong_reward-9.222554134367115_episode-24000_batch_size-4_gamma-0.97_tau-0.005_lr-0.0003_alpha-0.2_tuning-True_hidden_size-256_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-10000000_t-2021-03-11_20-10-59'
+actor = 'finals/tau1000/sac_actor_1000updates_hockey_reward-5.298743624008804_episode-80000_batch_size-8_gamma-0.97_tau-0.005_lr-0.0003_alpha-0.2_tuning-True_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-5_replaysize-10000000_t-2021-03-14_07-21-03'
+critic = 'finals/tau1000/sac_critic_1000updates_hockey_reward-5.298743624008804_episode-80000_batch_size-8_gamma-0.97_tau-0.005_lr-0.0003_alpha-0.2_tuning-True_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-5_replaysize-10000000_t-2021-03-14_07-21-03'
 
 agent.load_model(actor,critic)
 opponent = copy.deepcopy(agent)
 basic_strong = h_env.BasicOpponent(weak=False)
 time_ = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 #Tesnorboard
-writer = SummaryWriter(f"selfplay-final-runs/500updates{time_}_batch_size-{args.batch_size}_gamma-{args.gamma}_tau-{args.tau}_lr-{args.lr}_alpha-{args.alpha}_tuning-{args.automatic_entropy_tuning}_hidden_size-{args.hidden_size}_updatesStep-{args.updates_per_step}_startSteps-{args.start_steps}_targetIntervall-{args.target_update_interval}_replaysize-{args.replay_size}")
+writer = SummaryWriter(f"selfplay-best_of-runs/750updates_target{time_}_batch_size-{args.batch_size}_gamma-{args.gamma}_tau-{args.tau}_lr-{args.lr}_alpha-{args.alpha}_tuning-{args.automatic_entropy_tuning}_hidden_size-{args.hidden_size}_updatesStep-{args.updates_per_step}_startSteps-{args.start_steps}_targetIntervall-{args.target_update_interval}_replaysize-{args.replay_size}")
 
 # Memory
 # memory = PrioritizedReplay(args.replay_size)
@@ -163,16 +163,14 @@ for i_episode in itertools.count(1):
         avg_reward /= episodes
         last_avg = avg_reward
 
-        
-        writer.add_scalar('avg_reward/test', avg_reward, i_episode)
-
+        writer.add_scalar('reward/test', avg_reward, i_episode)
         print("----------------------------------------")
         print("Test Episodes: {}, Avg. Reward: {}".format(episodes, round(avg_reward, 2)))
         print("----------------------------------------")
-    if i_episode%500==0:
+    if i_episode%750==0:
         time_ = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-        agent.save_model( "final-models", "500updates_hockey_256_t1", suffix=f"reward-{last_avg}_episode-"+str(i_episode)+f"_batch_size-{args.batch_size}_gamma-{args.gamma}_tau-{args.tau}_lr-{args.lr}_alpha-{args.alpha}_tuning-{args.automatic_entropy_tuning}_hidden_size-{args.hidden_size}_updatesStep-{args.updates_per_step}_startSteps-{args.start_steps}_targetIntervall-{args.target_update_interval}_replaysize-{args.replay_size}_t-{time_}")
-    if i_episode%500==0:
+        agent.save_model( "best_ofbest_models", "750updates_target", suffix=f"reward-{last_avg}_episode-"+str(i_episode)+f"_batch_size-{args.batch_size}_gamma-{args.gamma}_tau-{args.tau}_lr-{args.lr}_alpha-{args.alpha}_tuning-{args.automatic_entropy_tuning}_hidden_size-{args.hidden_size}_updatesStep-{args.updates_per_step}_startSteps-{args.start_steps}_targetIntervall-{args.target_update_interval}_replaysize-{args.replay_size}_t-{time_}")
+    if i_episode%750==0:
         opponent.policy.load_state_dict(agent.policy.state_dict())
         opponent.critic.load_state_dict(agent.critic.state_dict())
         opponent.critic_target.load_state_dict(agent.critic_target.state_dict())

@@ -3,11 +3,14 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions import Normal
 
+# not used
+# actor + critic 
+
 LOG_SIG_MAX = 2
 LOG_SIG_MIN = -20
 epsilon = 1e-6
 
-# Initialize Policy weights
+
 def weights_init_(m):
     if isinstance(m, nn.Linear):
         torch.nn.init.xavier_uniform_(m.weight, gain=1)
@@ -35,12 +38,6 @@ class Critic(nn.Module):
         self.apply(weights_init_)
 
     def forward(self, state, action, last_action, hidden_in):
-        # state shape: (batch_size, sequence_length, state_dim)
-        # rnn needs:  (sequence_length, batch_size, state_dim) 
-        # state = state.permute(1,0,2) 
-        # action = action.permute(1,0,2)
-        # last_action = last_action.permute(1,0,2)
-
         xu = torch.cat([state, action], -1)
         xv = torch.cat([state, last_action], -1)
         
@@ -56,15 +53,13 @@ class Critic(nn.Module):
    
         fc2 = F.relu(self.linear6(xu))
         rnn2 = F.relu(self.linear7(xv))
-        rnn2, rnn_hidden = self.gru8(rnn2, hidden_in) # non linearity necessary?
+        rnn2, rnn_hidden = self.gru8(rnn2, hidden_in) 
         # rnn2 = F.relu(rnn2)
         merge2 = torch.cat([fc2, rnn2], -1) 
 
         x2 = F.relu(self.linear9(merge2))
         x2 = self.linear10(x2)
 
-        # x1 = x1.permute(1,0,2)  # back to same axes as input  
-        # x2 = x2.permute(1,0,2)  # back to same axes as input 
         return x1, x2
 
 
@@ -94,46 +89,39 @@ class Actor(nn.Module):
                 (action_space.high + action_space.low) / 2.)
 
     def forward(self, state, last_action, hidden_in):
-        # state shape: (batch_size, sequence_length, state_dim)
-        # rnn needs:  (sequence_length, batch_size, state_im) 
-        # state = state.permute(1,0,2)
-        # last_action = last_action.permute(1,0,2)
+
         xu =  torch.cat([state, last_action], -1)
 
         fc = F.relu(self.linear1(state))
         rnn = F.relu(self.linear2(xu))
-        rnn, rnn_hidden = self.gru(rnn, hidden_in) # non linearity necessary?
+        rnn, rnn_hidden = self.gru(rnn, hidden_in)
         # rnn = F.relu(rnn)
         merge = torch.cat([fc, rnn], -1) 
         x = F.relu(self.linear3(merge))
-        # x = x.permute(1,0,2)  # permute back
 
         mean = self.mean_linear(x)
-        # mean    = F.leaky_relu(self.mean_linear(x))
         log_std = self.log_std_linear(x)
         log_std = torch.clamp(log_std, min=LOG_SIG_MIN, max=LOG_SIG_MAX)
         return mean, log_std, rnn_hidden
 
     def sample(self, state, last_action, hidden_in):
         '''
-        generate sampled action with state as input wrt the policy network;
+        generate sampled action with state as input wrt the policy network
         '''
         mean, log_std, hidden_out = self.forward(state, last_action, hidden_in)
-        std = log_std.exp() # no clip in sampling, clip affects gradients flow
+        std = log_std.exp() 
         normal = Normal(mean, std)
-        x_t = normal.rsample()  # for reparameterization trick (mean + std * N(0,1))
+        x_t = normal.rsample()  for reparameterization trick
         y_t = torch.tanh(x_t) # TanhNormal distribution as actions
         action = y_t * self.action_scale + self.action_bias
-        # The log-likelihood here is for the TanhNorm distribution instead of only Gaussian distribution. \
-        # The TanhNorm forces the Gaussian with infinite action range to be finite. \
-        # log probability of action as in common \
-        # stochastic Gaussian action policy (without Tanh); \
+        # The log-likelihood here is for the TanhNorm distribution instead of only Gaussian distribution 
+        # The TanhNorm forces the Gaussian with infinite action range to be finite. 
+        # log probability of action as in common 
+        # stochastic Gaussian action policy (without Tanh)
         log_prob = normal.log_prob(x_t)
-        # caused by the Tanh(), as shown in appendix C. Enforcing Action Bounds of https://arxiv.org/pdf/1801.01290.pdf, \
-        # the epsilon is for preventing the negative cases in log; \
-        log_prob -= torch.log(self.action_scale * (1 - y_t.pow(2)) + epsilon)
-        # the Normal.log_prob outputs the same dim of input features instead of 1 dim probability, 
-        # needs sum up across the features dim to get 1 dim prob; or else use Multivariate Normal.
+        log_prob -= torch.log(self.action_scale * (1 - y_t.pow(2)) + epsilon) # epsilon preventing the negative cases in log
+
+        # sum up else Multivariate Normal
         log_prob = log_prob.sum(-1, keepdim=True)
         mean = torch.tanh(mean) * self.action_scale + self.action_bias
         return action, log_prob, mean, hidden_out
