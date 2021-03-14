@@ -46,13 +46,14 @@ agent = SAC(env.observation_space.shape[0], env.action_space, args)
 
 opponent = SAC(env.observation_space.shape[0], env.action_space, args)
 
-actor = "finals/alpha/sac_actor_500updates_hockey_reward--0.20085748776545811_episode-33000_batch_size-8_gamma-0.97_tau-0.005_lr-0.0003_alpha-0.02_tuning-False_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-5_replaysize-10000000_t-2021-03-14_06-01-44"
-critic = "finals/alpha/sac_critic_500updates_hockey_reward--0.20085748776545811_episode-33000_batch_size-8_gamma-0.97_tau-0.005_lr-0.0003_alpha-0.02_tuning-False_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-5_replaysize-10000000_t-2021-03-14_06-01-44"
-o_actor = "finals/pre/sac_actor_500updates_hockey_prio_reward-1.983261894330191_episode-20000_batch_size-8_gamma-0.97_tau-0.005_lr-0.0003_alpha-0.2_tuning-True_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-5_replaysize-10000000_t-2021-03-14_08-28-09"
-o_critic = "finals/pre/sac_critic_500updates_hockey_prio_reward-1.983261894330191_episode-20000_batch_size-8_gamma-0.97_tau-0.005_lr-0.0003_alpha-0.2_tuning-True_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-5_replaysize-10000000_t-2021-03-14_08-28-09"
-o_target = "finals/pre/sac_critic_target_500updates_hockey_prio_reward-4.514257658674091_episode-19500_batch_size-8_gamma-0.97_tau.2_tuning-True_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-5_replaysize-10000000_t-2021-03-14_07-48-40"
-agent.load_model(actor,critic)
-opponent.load_model(o_actor,o_critic,o_target)
+actor = "finals/complex2/sac_actor_750updates_alpha_reward-0.4968667554674209_episode-6750_batch_size-8_gamma-0.97_tau-0.005_lr-0.0003_alpha-0.01_tuning-False_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-5_replaysize-10000000_t-2021-03-14_12-57-10"
+critic = "finals/complex2/sac_critic_750updates_alpha_reward-0.4968667554674209_episode-6750_batch_size-8_gamma-0.97_tau-0.005_lr-0.0003_alpha-0.01_tuning-False_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-5_replaysize-10000000_t-2021-03-14_12-57-10"
+target =  "finals/complex2/sac_target_750updates_alpha_reward-0.4968667554674209_episode-6750_batch_size-8_gamma-0.97_tau-0.005_lr-0.0003_alpha-0.01_tuning-False_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-5_replaysize-10000000_t-2021-03-14_12-57-10"
+o_actor = "finals/alpha_advanced/sac_actor_500updates_hockey_reward--0.6738663011620487_episode-47000_batch_size-8_gamma-0.97_tau-0.005_lr.02_tuning-False_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-5_replaysize-10000000_t-2021-03-14_13-07-42"
+o_critic = "finals/alpha_advanced/sac_critic_500updates_hockey_reward--0.6738663011620487_episode-47000_batch_size-8_gamma-0.97_tau-0.005_l.02_tuning-False_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-5_replaysize-10000000_t-2021-03-14_13-07-42"
+# o_target = "finals/epsilon/sac_critic_target_750upd_eps_reward-0.6477312397284184_episode-7500_batch_size-8_gamma-0.97_tau-0.005_lr-0.0003_alpha-0.01_tuning-True_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-5_replaysize-10000000_t-2021-03-14_13-35-53"
+opponent.load_model(actor,critic,target)
+agent.load_model(o_actor,o_critic)
 
 
 basic = h_env.BasicOpponent(weak=False)
