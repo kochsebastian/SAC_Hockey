@@ -7,7 +7,9 @@ import argparse
 import seaborn as sns; sns.set()
 import csv
 import os
+import time
 
+f = 0
 def get_csv_log(log_dirs):
     steps, values = [], []
     data = {}
@@ -83,25 +85,36 @@ def rolling_window(a, window):
     return np.lib.stride_tricks.as_strided(a, shape=shape, strides=strides)
 
 
-
+def swap(data_sets, algorithm, i, j):
+    data_sets[i], data_sets[j] = data_sets[j], data_sets[i]
+    algorithm[0][i], algorithm[0][j] = algorithm[0][j], algorithm[0][i]
+    return data_sets,algorithm
+    
 def plot(data_sets, title, algorithm, label, dir,xlimit=31000):
-    data_sets[0], data_sets[1] = data_sets[1], data_sets[0]
-    algorithm[0][0], algorithm[0][1] = algorithm[0][1], algorithm[0][0]
+    # data_sets, algorithm = swap(data_sets,algorithm,0,2)
+    # data_sets, algorithm = swap(data_sets,algorithm,1,3)
+    # data_sets, algorithm = swap(data_sets,algorithm,1,2)
 
-    plot1(data_sets, title, algorithm, label, dir,xlimit)
-    plot2(data_sets, title, algorithm, label, dir,xlimit)
+
+    plot_i(data_sets, title, algorithm, label, dir,xlimit,8)
+    plot_i(data_sets, title, algorithm, label, dir,xlimit,15)
     plt.show()
+    # time.sleep(3)
+    # plt.close()
     
-def plot1(data_sets, title, algorithm, label, dir,xlimit):
-    fig = plt.figure(1,figsize=(8,8))
+def plot_i(data_sets, title, algorithm, label, dir,xlimit,figs):
+    global f
+    f+=1
+    fig = plt.figure(f,figsize=(8,8))
     # plt.clf()
     # plt.subplot(111)
     ax1 = plt.gca()
     
     plt.ticklabel_format(style='sci', axis='x',useOffset=False, scilimits=(0,0))
     max_ = -100000
+    # colors =['crimson','lime','deepskyblue','magenta','darkviolet','darkorange','yellow','chocolate']
     for idx, data in enumerate(data_sets):
-        plt.figure(1)
+        plt.figure(f)
         data=data.astype(float)
         if xlimit!=None:
             data = data.drop(data[data.values[...,0] > xlimit].index)
@@ -114,8 +127,9 @@ def plot1(data_sets, title, algorithm, label, dir,xlimit):
 
 
         color = next(ax1._get_lines.prop_cycler)['color']
-        ax = data.plot(x='Environment Steps', y=label,alpha=0.25,color=color,label=algorithm[0][idx],figsize=(15, 8),ax = ax1)
-        smoothed.plot(x='Environment Steps', y=label,alpha=1.0,color=color,ax = ax1,label='',linewidth=2.0)
+        # color = colors[idx]
+        ax = data.plot(x='Environment Steps', y=label,alpha=0.3,color=color,label='',figsize=(figs, 8),ax = ax1)
+        smoothed.plot(x='Environment Steps', y=label,alpha=1.0,color=color,ax = ax1,label=algorithm[0][idx],linewidth=2.0)
         
         # color = next(ax1._get_lines.prop_cycler)['color']
         # plt.fill_between(data.values[...,0], smoothed.values[...,1]-std, smoothed.values[...,1]+std,color=color,alpha=0.5)
@@ -124,52 +138,21 @@ def plot1(data_sets, title, algorithm, label, dir,xlimit):
     extratick = [max_]
     plt.yticks(list(plt.yticks()[0])[1:-2]+extratick)
     ax.set_ylabel("avg reward")
-    plt.title(title, fontsize=15)
-    ax.yaxis.label.set_size(15)
-    ax.xaxis.label.set_size(15)
+    if figs==8:
+        fsize=15
+    else:
+        fsize=15
+    plt.title(title, fontsize=fsize)
+    ax.yaxis.label.set_size(fsize)
+    ax.xaxis.label.set_size(fsize)
 
-    plt.legend(loc='lower right',fontsize=13)
-    plt.savefig(dir+title+'.svg', format='svg')
-    # plt.show()
-
-def plot2(data_sets, title, algorithm, label, dir,xlimit):
-    fig = plt.figure(2,figsize=(8,8))
-    # plt.clf()
-    # plt.subplot(111)
-    ax1 = plt.gca()
+    plt.legend(loc='lower right',fontsize=15)
+    # plt.ylim(bottom=-400) 
     
-    plt.ticklabel_format(style='sci', axis='x',useOffset=False, scilimits=(0,0))
-    max_ = -100000
-    for idx, data in enumerate(data_sets):
-        plt.figure(2)
-        data=data.astype(float)
-        if xlimit!=None:
-            data = data.drop(data[data.values[...,0] > xlimit].index)
-        
-        smoothed = data.copy()
-        smoothed.values[...,1] = smooth(smoothed.values[...,1],0.9)
-        max_ = max(np.amax(data.values[...,1]),max_)
-
-        std = np.std(rolling_window(data.values[...,1], 30), axis=-1)
-
-
-        color = next(ax1._get_lines.prop_cycler)['color']
-        ax = data.plot(x='Environment Steps', y=label,alpha=0.25,color=color,label=algorithm[0][idx],figsize=(8, 8),ax = ax1)
-        smoothed.plot(x='Environment Steps', y=label,alpha=1.0,color=color,ax = ax1,label='',linewidth=2.0)
-        
-        # color = next(ax1._get_lines.prop_cycler)['color']
-        # plt.fill_between(data.values[...,0], smoothed.values[...,1]-std, smoothed.values[...,1]+std,color=color,alpha=0.5)
-        # plt.fill_between(data.values[...,0], smoothed.values[...,1]-std, smoothed.values[...,1]+std,color=color,alpha=0.5)
-    
-    extratick = [max_]
-    plt.yticks(list(plt.yticks()[0])[1:-2]+extratick)
-    ax.set_ylabel("avg reward")
-    plt.title(title, fontsize=12)
-    ax.yaxis.label.set_size(12)
-    ax.xaxis.label.set_size(12)
-
-    plt.legend(loc='lower right',fontsize=12)
-    plt.savefig(dir+title+'_square.svg', format='svg')
+    if figs==8:
+        plt.savefig(dir+title+'_square.svg', format='svg')
+    else:
+        plt.savefig(dir+title+'.svg', format='svg')
     # plt.show()
 
 def chunks(l, n):
@@ -184,7 +167,9 @@ if __name__ == '__main__':
     parser.add_argument("-dir", "--logdir", type=str, action='append', nargs='+', help="Path to the run(s) you want to plot, for each algorithm same amount of runs!")
     parser.add_argument("-l", "--label", type=str, action='append', nargs='+', help="Label you want to plot, for example Reward")
     parser.add_argument("-t", "--title", type=str, action='append', nargs='+', help="Title of the plot")
-    parser.add_argument("-sd", "--savedir", type=str, default="", help="Save directory, default current directory")
+    parser.add_argument("-sd", "--savedir", type=str, default="plots/", help="Save directory, default current directory")
+    parser.add_argument("--xlim",  type=int, default=1000000000, help="Largest xs")
+    
     args = parser.parse_args()
 
     #print(args)
@@ -215,4 +200,4 @@ if __name__ == '__main__':
             # data_per_label.append(dataset)
             data_per_label.append(dataset2)
         
-        plot(data_per_label, args.title[0][i], args.algorithm, args.label[0][i], args.savedir)
+        plot(data_per_label, args.title[0][i], args.algorithm, args.label[0][i], args.savedir,xlimit=args.xlim)
