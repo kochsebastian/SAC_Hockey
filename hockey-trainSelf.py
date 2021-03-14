@@ -109,7 +109,7 @@ for i_episode in itertools.count(1):
 
         # a2 = [10,0.,0,0] 
         obs_agent2 = env.obs_agent_two()
-        if i_episode % 3 != 0: # more selfplay
+        if i_episode % 3 != 0:
             a2 = opponent.select_action(obs_agent2, evaluate=True)
         else:
             a2 = basic_strong.act(obs_agent2)
@@ -149,7 +149,7 @@ for i_episode in itertools.count(1):
                 
                 action = agent.select_action(state, evaluate=True)
                 obs_agent2 = env.obs_agent_two()
-                if k % 3 != 0: # more selfplay
+                if k %3 !=0: 
                     a2 = opponent.select_action(obs_agent2, evaluate=True)
                 else:
                     a2 = basic_strong.act(obs_agent2)
@@ -174,6 +174,7 @@ for i_episode in itertools.count(1):
         opponent.policy.load_state_dict(agent.policy.state_dict())
         opponent.critic.load_state_dict(agent.critic.state_dict())
         opponent.critic_target.load_state_dict(agent.critic_target.state_dict())
+
 env.close()
 
 

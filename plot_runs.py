@@ -129,7 +129,7 @@ def plot1(data_sets, title, algorithm, label, dir,xlimit):
     ax.xaxis.label.set_size(15)
 
     plt.legend(loc='lower right',fontsize=13)
-    plt.savefig(dir+title+'.png', dpi=600)
+    plt.savefig(dir+title+'.svg', format='svg')
     # plt.show()
 
 def plot2(data_sets, title, algorithm, label, dir,xlimit):
@@ -169,7 +169,7 @@ def plot2(data_sets, title, algorithm, label, dir,xlimit):
     ax.xaxis.label.set_size(12)
 
     plt.legend(loc='lower right',fontsize=12)
-    plt.savefig(dir+title+'_square.png', dpi=600)
+    plt.savefig(dir+title+'_square.svg', format='svg')
     # plt.show()
 
 def chunks(l, n):
