@@ -1,7 +1,6 @@
 
 import random
 import numpy as np
-from sum_tree import SumTree
 
 # Without sumtree
 class PrioritizedReplay(object):
@@ -10,10 +9,10 @@ class PrioritizedReplay(object):
         self.beta_start = beta_start
         self.beta_steps = beta_steps
         self.step = 1 
-        self.capacity   = capacity
-        self.buffer     = []
-        self.pos        = 0
-        self.priorities = np.zeros((capacity,), dtype=np.float32)
+        self.capacity = capacity
+        self.buffer = []
+        self.pos = 0
+        self.prios = np.zeros((capacity,), dtype=np.float32)
     
     def beta_by_step(self, step_idx):
         # ANNEALING THE BIAS: Linearly increases beta from beta_start to 1 over time from 1 to beta_steps.
@@ -23,7 +22,7 @@ class PrioritizedReplay(object):
         state      = np.expand_dims(state, 0)
         next_state = np.expand_dims(next_state, 0)
         
-        max_prio = self.priorities.max() if self.buffer else 1.0 
+        max_prio = self.prios.max() if self.buffer else 1.0 
         
         if len(self.buffer) < self.capacity:
             self.buffer.append((state, action, reward, next_state, done))
@@ -31,15 +30,15 @@ class PrioritizedReplay(object):
             # buffer full, replace oldest mem
             self.buffer[self.pos] = (state, action, reward, next_state, done) 
         
-        self.priorities[self.pos] = max_prio
+        self.prios[self.pos] = max_prio
         self.pos = (self.pos + 1) % self.capacity 
     
     def sample(self, batch_size, c_k=None):
         N = len(self.buffer)
         if N == self.capacity:
-            prios = self.priorities
+            prios = self.prios
         else:
-            prios = self.priorities[:self.pos]
+            prios = self.prios[:self.pos]
             
         # P = p^a/sum(p^a)
         probs  = prios ** self.alpha
@@ -63,7 +62,7 @@ class PrioritizedReplay(object):
     
     def update_priorities(self, batch_indices, batch_priorities):
         for idx, prio in zip(batch_indices, batch_priorities):
-            self.priorities[idx] = abs(prio) 
+            self.prios[idx] = abs(prio) 
 
     def __len__(self):
         return len(self.buffer)

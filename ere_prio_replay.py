@@ -30,20 +30,18 @@ class PrioritizedReplay(PRE_PrioritizedReplay):
         else:
             prios = np.array(list(self.priorities)[:c_k])
         
-        # pre 
-
         # P = p^a/sum(p^a)
         probs  = prios ** self.alpha
         P = probs/probs.sum()
         
-        #gets the indices depending on the probability p and the c_k range of the buffer
-        indices = np.random.choice(c_k, batch_size, p=P) 
+        # p and the c_k range of the buffer
+        indices = np.random.choice(c_k, batch_size, p=P)  # diff to pre
         samples = [self.buffer[idx] for idx in indices]
         
         beta = self.beta_by_step(self.step)
         self.step+=1
                 
-        #Compute importance-sampling weight
+        # importance-sampling weight
         weights  = (c_k * P[indices]) ** (-beta)
         # normalize weights
         weights /= weights.max() 

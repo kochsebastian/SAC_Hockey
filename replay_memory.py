@@ -1,6 +1,7 @@
 import random
 import numpy as np
 
+# old exercise + seed
 class ReplayMemory:
     def __init__(self, capacity, seed):
         random.seed(seed)
