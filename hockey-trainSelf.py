@@ -14,6 +14,7 @@ from torch.utils.tensorboard import SummaryWriter
 from prio_replay_memory import PrioritizedReplay
 from replay_memory import ReplayMemory
 import copy
+import random
 
 parser = argparse.ArgumentParser(description='Soft Actor-Critic Args')
 parser.add_argument('--env-name', default="Hockey")
@@ -48,7 +49,7 @@ opponent = copy.deepcopy(agent)
 basic_strong = h_env.BasicOpponent(weak=False)
 time_ = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 #Tesnorboard
-writer = SummaryWriter(f"selfplay-best_of-runs/750updates_target{time_}_batch_size-{args.batch_size}_gamma-{args.gamma}_tau-{args.tau}_lr-{args.lr}_alpha-{args.alpha}_tuning-{args.automatic_entropy_tuning}_hidden_size-{args.hidden_size}_updatesStep-{args.updates_per_step}_startSteps-{args.start_steps}_targetIntervall-{args.target_update_interval}_replaysize-{args.replay_size}")
+writer = SummaryWriter(f"finalnight/500updates_win{time_}_batch_size-{args.batch_size}_gamma-{args.gamma}_tau-{args.tau}_lr-{args.lr}_alpha-{args.alpha}_tuning-{args.automatic_entropy_tuning}_hidden_size-{args.hidden_size}_updatesStep-{args.updates_per_step}_startSteps-{args.start_steps}_targetIntervall-{args.target_update_interval}_replaysize-{args.replay_size}")
 
 # Memory
 # memory = PrioritizedReplay(args.replay_size)
@@ -62,6 +63,7 @@ updates = 0
 o = env.reset()
 # _ = env.render()
 last_avg=0
+save_now = False 
 for i_episode in itertools.count(1):
     episode_reward = 0
     episode_steps = 0
@@ -70,7 +72,7 @@ for i_episode in itertools.count(1):
 
     while not done:
         # state = env.obs_agent_two()
-        if args.start_steps > total_numsteps:
+        if args.start_steps > total_numsteps or random.random() < 0.01:
             action = env.action_space.sample()  # Sample random action
         else:
             action = agent.select_action(state)  # Sample action from policy
@@ -113,12 +115,13 @@ for i_episode in itertools.count(1):
     if total_numsteps > args.num_steps:
         break
 
-    # writer.add_scalar('reward/train', episode_reward, i_episode)
+    writer.add_scalar('reward/train', episode_reward, i_episode)
     print("Episode: {}, total numsteps: {}, episode steps: {}, reward: {}".format(i_episode, total_numsteps, episode_steps, round(episode_reward, 2)))
 
+    wins = 0
     if i_episode % 13 == 0:
         avg_reward = 0.
-        episodes = 9
+        episodes = 11
         for k  in range(episodes):
             state = env.reset()
             episode_reward = 0
@@ -131,7 +134,9 @@ for i_episode in itertools.count(1):
                     a2 = opponent.select_action(obs_agent2, evaluate=True)
                 else:
                     a2 = basic_strong.act(obs_agent2)
-                next_state, reward, done, _ = env.step(np.hstack([action[0:4],a2[0:4]])) 
+                next_state, reward, done, info = env.step(np.hstack([action[0:4],a2[0:4]])) 
+                if info['winner'] == 1:
+                    wins+=1
                 # env.render()
                 episode_reward += reward
 
@@ -145,10 +150,14 @@ for i_episode in itertools.count(1):
         print("----------------------------------------")
         print("Test Episodes: {}, Avg. Reward: {}".format(episodes, round(avg_reward, 2)))
         print("----------------------------------------")
-    if i_episode%750==0:
+    
+    if wins > 6:
+        save_now = True
+    if i_episode%500==0:
         time_ = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-        agent.save_model( "best_ofbest_models", "750updates_target", suffix=f"reward-{last_avg}_episode-"+str(i_episode)+f"_batch_size-{args.batch_size}_gamma-{args.gamma}_tau-{args.tau}_lr-{args.lr}_alpha-{args.alpha}_tuning-{args.automatic_entropy_tuning}_hidden_size-{args.hidden_size}_updatesStep-{args.updates_per_step}_startSteps-{args.start_steps}_targetIntervall-{args.target_update_interval}_replaysize-{args.replay_size}_t-{time_}")
-    if i_episode%750==0:
+        agent.save_model( "night_models", "500updates_goal", suffix=f"reward-{last_avg}_episode-"+str(i_episode)+f"_batch_size-{args.batch_size}_gamma-{args.gamma}_tau-{args.tau}_lr-{args.lr}_alpha-{args.alpha}_tuning-{args.automatic_entropy_tuning}_hidden_size-{args.hidden_size}_updatesStep-{args.updates_per_step}_startSteps-{args.start_steps}_targetIntervall-{args.target_update_interval}_replaysize-{args.replay_size}_t-{time_}")
+    if i_episode%500==0 and save_now:
+        save_now = False
         opponent.policy.load_state_dict(agent.policy.state_dict())
         opponent.critic.load_state_dict(agent.critic.state_dict())
         opponent.critic_target.load_state_dict(agent.critic_target.state_dict())

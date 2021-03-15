@@ -1,6 +1,8 @@
 import random
 import numpy as np
 import torch
+
+# Store not only one state but states of whole episode
 class ReplayMemoryGRU:
     def __init__(self, capacity, seed):
         random.seed(seed)
