@@ -35,7 +35,7 @@ parser.add_argument('--replay_size', type=int, default=1000000, metavar='N')
 
 args = parser.parse_args()
 
-args.cuda = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+args.cuda =True if torch.cuda.is_available() else False
 
 env = h_env.HockeyEnv(mode=h_env.HockeyEnv.NORMAL)
 # Agent
@@ -46,8 +46,8 @@ runs = [r+'/' for r in runs]
 agent = SAC(env.observation_space.shape[0], env.action_space, args)
 opponent = SAC(env.observation_space.shape[0], env.action_space, args)
 
-player1= 0
-player2 =4
+player1= 3
+player2 =7
 basic1 = False
 basic2 = False
 print(f"{runs[player1]} vs {runs[player2]}")

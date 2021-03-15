@@ -29,7 +29,7 @@ parser.add_argument('--replay_size', type=int, default=1000000, metavar='N')
 
 args = parser.parse_args()
 
-args.cuda = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+args.cuda =True if torch.cuda.is_available() else False
 env = h_env.HockeyEnv(mode=h_env.HockeyEnv.NORMAL)
 
 
@@ -37,9 +37,15 @@ class SACAgent(BasicOpponent, RemoteControllerInterface):
 
     def __init__(self, weak, keep_mode=True):
         self.agent = SAC(env.observation_space.shape[0], env.action_space, args)
-        o_actor = "finals/alpha_advanced/sac_actor_500updates_hockey_reward--0.6738663011620487_episode-47000_batch_size-8_gamma-0.97_tau-0.005_lr.02_tuning-False_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-5_replaysize-10000000_t-2021-03-14_13-07-42"
-        o_critic = "finals/alpha_advanced/sac_critic_500updates_hockey_reward--0.6738663011620487_episode-47000_batch_size-8_gamma-0.97_tau-0.005_l.02_tuning-False_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-5_replaysize-10000000_t-2021-03-14_13-07-42"
-        self.agent.load_model(o_actor,o_critic)
+        root = "/home/sebastiankoch/SoftActorCriticRNN/finals/alpha/"
+        actor = root+"sac_actor_500updates_hockey_reward--0.20085748776545811_episode-33000_batch_size-8_gamma-0.97_tau-0.005_lr-0.0003_alpha-0.02_tuning-False_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-5_replaysize-10000000_t-2021-03-14_06-01-44"
+        critic = root+"sac_critic_500updates_hockey_reward--0.20085748776545811_episode-33000_batch_size-8_gamma-0.97_tau-0.005_lr-0.0003_alpha-0.02_tuning-False_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-5_replaysize-10000000_t-2021-03-14_06-01-44"
+        self.agent.load_model(actor,critic,None)
+        # root = "/home/sebastiankoch/SoftActorCriticRNN/finals/new_best/"
+        # actor = root+"sac_actor_500updates_win_reward-7.166574252130548_episode-5000_batch_size-8_gamma-0.97_tau-0.005_lr-0.0003_alpha-0.01_tuning-True_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-1000000_t-2021-03-15_14-49-13"
+        # critic = root+"sac_critic_500updates_win_reward-7.166574252130548_episode-5000_batch_size-8_gamma-0.97_tau-0.005_lr-0.0003_alpha-0.01_tuning-True_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-1000000_t-2021-03-15_14-49-13"
+        # target = root+"sac_target_500updates_win_reward-7.166574252130548_episode-5000_batch_size-8_gamma-0.97_tau-0.005_lr-0.0003_alpha-0.01_tuning-True_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-1000000_t-2021-03-15_14-49-13"
+        # self.agent.load_model(actor,critic,target)
         RemoteControllerInterface.__init__(self, identifier='SAC')
 
     def remote_act(self, 

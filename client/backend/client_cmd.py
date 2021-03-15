@@ -56,9 +56,9 @@ class GameLoopCMD(cmd.Cmd):
 
         self.client = client
 
-    def do_stop_queuing(self, arg):
+    def do_stop_queueing(self, arg):
         'Stop queuing for game'
-        reactor.callFromThread(self.client.stop_queuing)
+        reactor.callFromThread(self.client.stop_queueing)
         return True
 
     def precmd(self, line):

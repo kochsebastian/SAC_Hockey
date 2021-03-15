@@ -28,7 +28,7 @@ parser.add_argument('--replay_size', type=int, default=1000000, metavar='N')
 
 args = parser.parse_args()
 
-args.cuda = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+args.cuda =True if torch.cuda.is_available() else False
 
 # Environment
 # env = NormalizedActions(gym.make(args.env_name))

@@ -42,6 +42,9 @@ class SAC(object):
             raise NotImplementedError
     
     def soft_update(self, target, source, tau):
+        """Soft update parameters
+        params_target = tau*params + (1 - tau)*params_target
+        """
         for target_param, param in zip(target.parameters(), source.parameters()):
             target_param.data.copy_(target_param.data * (1.0 - tau) + param.data * tau)
 

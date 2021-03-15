@@ -89,7 +89,7 @@ class Client:
                                                  )
         self.network_interface.connect()
 
-    def stop_queuing(self) -> None:
+    def stop_queueing(self) -> None:
         self.played_games = 0
 
         if self.state == ClientOperationState.PLAYING:
@@ -100,7 +100,7 @@ class Client:
             self.waiting_for_game_loop.stop()
             del(self.waiting_for_game_loop)
             self.state = ClientOperationState.PLAYING_QUIT
-            d = self.network_interface.stop_queuing()
+            d = self.network_interface.stop_queueing()
             if not self.interactive:
                 d.addCallback(self.quit)
 
@@ -139,7 +139,7 @@ escape.
 
         if self.num_games is not None:
             if self.played_games >= self.num_games:
-                self.stop_queuing()
+                self.stop_queueing()
                 if not self.interactive:
                     self.quit()
                     return
@@ -243,11 +243,11 @@ escape.
                   r : int, 
                   done : int, 
                   info : Dict,
-                  winner : str
+                  result : str
                  ) -> None:
 
         if self.verbose:
-            print(f'{winner} won the game')
+            print(f'{result["games_played"]} games played. You won {result["games_won"]} games. You lost {result["games_lost"]} games. {result["games_drawn"]} game(s) end in a draw.')
 
         self.current_game.add_transition(next_obs=ob, 
                                          next_action=None, 

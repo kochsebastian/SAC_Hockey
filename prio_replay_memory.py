@@ -34,12 +34,14 @@ class PrioritizedReplay(object):
         self.pos = (self.pos + 1) % self.capacity 
     
     def sample(self, batch_size, c_k=None):
+        assert c_k == None
+
         N = len(self.buffer)
         prios = self.prios if N == self.capacity else self.prios[:self.pos]
             
         # P = p^a/sum(p^a)
         probs  = prios ** self.alpha
-        P = probs/probs.sum()
+        P = probs/sum(probs)
         
         # choose by prob
         indices = np.random.choice(N, batch_size, p=P) 
@@ -48,11 +50,11 @@ class PrioritizedReplay(object):
         beta = self.beta_by_step(self.step)
         self.step+=1
                 
-        #Compute importance-sampling weight
+        # importance-sampling weight
         weights  = (N * P[indices]) ** (-beta)
         
-        weights /= weights.max() 
-        weights  = np.array(weights, dtype=np.float32) 
+        weights /= max(weights)
+        weights.astype(np.float32)
         
         states, actions, rewards, next_states, dones = zip(*samples) 
         return np.concatenate(states), actions, rewards, np.concatenate(next_states), dones, indices, weights

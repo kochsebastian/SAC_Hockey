@@ -126,10 +126,10 @@ class NetworkInterface(pb.Referenceable):
                          r : int, 
                          done : int, 
                          info : Dict,
-                         winner : str
+                         result : Dict
                         ) -> None:
 
-        self.client.game_done(ob, r, done, info, winner)
+        self.client.game_done(ob, r, done, info, result)
 
     def remote_receive_observation(self, 
                                    ob : List[float], 
@@ -158,9 +158,9 @@ class NetworkInterface(pb.Referenceable):
         except pb.DeadReferenceError:
             self.connection_error(None, conn_err=NetworkInterfaceConnectionError.LOST)
     
-    def stop_queuing(self) -> None:
+    def stop_queueing(self) -> None:
         try:
-            d = self.remote_client.callRemote('stop_queuing')
+            d = self.remote_client.callRemote('stop_queueing')
             d.addErrback(self.connection_error, conn_err=NetworkInterfaceConnectionError.LOST)
             return d
         except pb.DeadReferenceError:

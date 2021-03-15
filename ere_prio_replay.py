@@ -21,6 +21,7 @@ class PrioritizedReplay(PRE_PrioritizedReplay):
     
     def sample(self, batch_size, c_k):
         # ere diff
+        assert c_k != None
         N = len(self.buffer)
         c_k = max(c_k,N)
   
@@ -28,7 +29,7 @@ class PrioritizedReplay(PRE_PrioritizedReplay):
 
         # P = p^a/sum(p^a)
         probs  = prios ** self.alpha
-        P = probs/probs.sum()
+        P = probs/sum(probs)
         
         # p and the c_k range of the buffer
         indices = np.random.choice(c_k, batch_size, p=P)  # diff to pre
@@ -40,8 +41,8 @@ class PrioritizedReplay(PRE_PrioritizedReplay):
         # importance-sampling weight
         weights  = (c_k * P[indices]) ** (-beta)
         # normalize weights
-        weights /= weights.max() 
-        weights  = np.array(weights, dtype=np.float32) 
+        weights /= max(weights) 
+        weights.astype(np.float32)
         
         states, actions, rewards, next_states, dones = zip(*samples) 
         return np.concatenate(states), actions, rewards, np.concatenate(next_states), dones, indices, weights

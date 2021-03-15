@@ -82,6 +82,9 @@ class Actor(nn.Module):
         normal = Normal(mu, std)
         z = normal.rsample()  # reparameterization trick 
         # also possible to sample from standard normal and then add mu, times std
+        # normal = Normal(0, 1)
+        # z = dist.sample().to(device)
+        # unscaled_action = torch.tanh(mu + e * std)
         unscaled_action = torch.tanh(z) # TanhNormal distribution as actions
         action = unscaled_action * self.action_scale + self.action_bias # normalize
         
