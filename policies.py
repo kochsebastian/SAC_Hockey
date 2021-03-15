@@ -54,21 +54,38 @@ class Actor(nn.Module):
         '''
         mu, log_std = self.forward(state)
         std = log_std.exp() 
+        
         normal = Normal(mu, std)
-        x_t = normal.rsample()  # reparameterization trick 
-        y_t = torch.tanh(x_t) # TanhNormal distribution as actions
-        action = y_t * self.action_scale + self.action_bias # normalize
+        z = normal.rsample()  # rsample for reparameterization trick 
+        # also possible to sample from standard normal and then add mu, times std
+        unscaled_action = torch.tanh(z) # TanhNormal distribution as actions
+        action = unscaled_action * self.action_scale + self.action_bias # normalize
         # The log-likelihood here is for the TanhNorm distribution instead of only Gaussian distribution. 
         # The TanhNorm forces the Gaussian with infinite action range to be finite. 
         # log probability of action as in common 
         # stochastic Gaussian action policy (without Tanh)
-        log_prob = normal.log_prob(x_t)
-        log_prob -= torch.log(self.action_scale * (1 - y_t.pow(2)) + epsilon) # epsilon preventing the negative cases in log
+        log_prob = normal.log_prob(z)- torch.log(self.action_scale * (1 - unscaled_action.pow(2)) + epsilon) # epsilon preventing the negative cases in log
         
         # sum up else Multivariate Normal
         log_prob = log_prob.sum(1, keepdim=True)
         mu = torch.tanh(mu) * self.action_scale + self.action_bias # normalize
         return action, log_prob, mu
+
+
+    def evaluate(self, state):
+        '''
+        generate sampled action with state as input wrt the policy network
+        '''
+        mu, log_std = self.forward(state)
+        std = log_std.exp() 
+        
+        normal = Normal(mu, std)
+        z = normal.rsample()  # reparameterization trick 
+        # also possible to sample from standard normal and then add mu, times std
+        unscaled_action = torch.tanh(z) # TanhNormal distribution as actions
+        action = unscaled_action * self.action_scale + self.action_bias # normalize
+        
+        return action
 
     def to(self, device):
         self.action_scale = self.action_scale.to(device)

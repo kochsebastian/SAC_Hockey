@@ -27,7 +27,6 @@ class SAC(object):
         # reset target to citic
         self.hard_update(self.critic_target, self.critic)
 
-
         if self.policy_type == "Gaussian":
             if self.automatic_entropy_tuning is True:
                 self.target_entropy = -torch.prod(torch.Tensor(action_space.shape).to(self.device)).item()
@@ -39,6 +38,7 @@ class SAC(object):
 
         else:
             # gSDE? noisy layers?
+            # uniform?
             raise NotImplementedError
     
     def soft_update(self, target, source, tau):
@@ -54,7 +54,7 @@ class SAC(object):
         if evaluate is False:
             action, log_prob, mu = self.policy.sample(state)
         else:
-            _, _, action = self.policy.sample(state)
+            action = self.policy.evaluate(state)
         return action.detach().cpu().numpy()[0]
 
     def deputy_mse(self,q1,q2,next_q_value,weights):
@@ -86,6 +86,7 @@ class SAC(object):
             next_state_action, next_state_log_pi, next_state_mu = self.policy.sample(next_state_batch)
             q1_next_target, q2_next_target = self.critic_target(next_state_batch, next_state_action)
 
+            # sac v2 as in TD3 use min of critics to avoid overestiation
             min_q_next_target = torch.min(q1_next_target, q2_next_target) - self.alpha * next_state_log_pi
             next_q_value = reward_batch + mask_batch * self.gamma * (min_q_next_target)
 
@@ -119,6 +120,7 @@ class SAC(object):
         policy_loss.backward()
         self.policy_optim.step()
 
+        # sac v2 automatic entropy adjustment
         if self.automatic_entropy_tuning:
             alpha_loss = -(self.log_alpha * (log_pi + self.target_entropy).detach()).mean()
 

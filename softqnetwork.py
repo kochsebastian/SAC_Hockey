@@ -10,6 +10,7 @@ def weights_init_(m):
 
 
 class Critic(nn.Module):
+    # both q networks in one critic
     def __init__(self, num_inputs, num_actions, hidden_dim):
         super(Critic, self).__init__()
 

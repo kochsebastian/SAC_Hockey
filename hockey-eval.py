@@ -49,10 +49,11 @@ opponent = SAC(env.observation_space.shape[0], env.action_space, args)
 actor = "finals/complex2/sac_actor_750updates_alpha_reward-0.4968667554674209_episode-6750_batch_size-8_gamma-0.97_tau-0.005_lr-0.0003_alpha-0.01_tuning-False_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-5_replaysize-10000000_t-2021-03-14_12-57-10"
 critic = "finals/complex2/sac_critic_750updates_alpha_reward-0.4968667554674209_episode-6750_batch_size-8_gamma-0.97_tau-0.005_lr-0.0003_alpha-0.01_tuning-False_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-5_replaysize-10000000_t-2021-03-14_12-57-10"
 target =  "finals/complex2/sac_target_750updates_alpha_reward-0.4968667554674209_episode-6750_batch_size-8_gamma-0.97_tau-0.005_lr-0.0003_alpha-0.01_tuning-False_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-5_replaysize-10000000_t-2021-03-14_12-57-10"
+
 o_actor = "finals/alpha_advanced/sac_actor_500updates_hockey_reward--0.6738663011620487_episode-47000_batch_size-8_gamma-0.97_tau-0.005_lr.02_tuning-False_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-5_replaysize-10000000_t-2021-03-14_13-07-42"
 o_critic = "finals/alpha_advanced/sac_critic_500updates_hockey_reward--0.6738663011620487_episode-47000_batch_size-8_gamma-0.97_tau-0.005_l.02_tuning-False_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-5_replaysize-10000000_t-2021-03-14_13-07-42"
 # o_target = "finals/epsilon/sac_critic_target_750upd_eps_reward-0.6477312397284184_episode-7500_batch_size-8_gamma-0.97_tau-0.005_lr-0.0003_alpha-0.01_tuning-True_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-5_replaysize-10000000_t-2021-03-14_13-35-53"
-opponent.load_model(actor,critic,target)
+# opponent.load_model(actor,critic,target)
 agent.load_model(o_actor,o_critic)
 
 
@@ -89,8 +90,8 @@ for _  in range(episodes):
         # action = basic.act(state)
         action = agent.select_action(state, evaluate=True)
         obs_agent2 = env.obs_agent_two()
-        # a2 = basic.act(obs_agent2)
-        a2 = opponent.select_action(obs_agent2, evaluate=True)
+        a2 = basic.act(obs_agent2)
+        # a2 = opponent.select_action(obs_agent2, evaluate=True)
         
         next_state, reward, done, info = env.step(np.hstack([action[0:4],a2[0:4]])) 
         env.render()

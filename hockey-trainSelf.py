@@ -21,8 +21,8 @@ parser.add_argument('--policy', default="Gaussian")
 parser.add_argument('--gamma', type=float, default=0.97, metavar='G')
 parser.add_argument('--tau', type=float, default=0.005, metavar='G')
 parser.add_argument('--lr', type=float, default=0.0003, metavar='G')
-parser.add_argument('--alpha', type=float, default=0.2, metavar='G')
-parser.add_argument('--automatic_entropy_tuning', type=bool, default=True, metavar='G')
+parser.add_argument('--alpha', type=float, default=0.01, metavar='G')
+parser.add_argument('--automatic_entropy_tuning', type=bool, default=False, metavar='G')
 parser.add_argument('--seed', type=int, default=111111, metavar='N')
 parser.add_argument('--batch_size', type=int, default=8, metavar='N')
 parser.add_argument('--num_steps', type=int, default=10000001, metavar='N')
@@ -40,15 +40,15 @@ args.cuda = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 env = h_env.HockeyEnv(mode=h_env.HockeyEnv.NORMAL)
 # Agent
 agent = SAC(env.observation_space.shape[0], env.action_space, args)
-actor = 'finals/tau1000/sac_actor_1000updates_hockey_reward-5.298743624008804_episode-80000_batch_size-8_gamma-0.97_tau-0.005_lr-0.0003_alpha-0.2_tuning-True_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-5_replaysize-10000000_t-2021-03-14_07-21-03'
-critic = 'finals/tau1000/sac_critic_1000updates_hockey_reward-5.298743624008804_episode-80000_batch_size-8_gamma-0.97_tau-0.005_lr-0.0003_alpha-0.2_tuning-True_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-5_replaysize-10000000_t-2021-03-14_07-21-03'
+actor = "finals/alpha_advanced/sac_actor_500updates_hockey_reward--0.6738663011620487_episode-47000_batch_size-8_gamma-0.97_tau-0.005_lr.02_tuning-False_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-5_replaysize-10000000_t-2021-03-14_13-07-42"
+critic = "finals/alpha_advanced/sac_critic_500updates_hockey_reward--0.6738663011620487_episode-47000_batch_size-8_gamma-0.97_tau-0.005_l.02_tuning-False_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-5_replaysize-10000000_t-2021-03-14_13-07-42"
 
 agent.load_model(actor,critic)
 opponent = copy.deepcopy(agent)
 basic_strong = h_env.BasicOpponent(weak=False)
 time_ = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 #Tesnorboard
-writer = SummaryWriter(f"selfplay-best_of-runs/750updates_target{time_}_batch_size-{args.batch_size}_gamma-{args.gamma}_tau-{args.tau}_lr-{args.lr}_alpha-{args.alpha}_tuning-{args.automatic_entropy_tuning}_hidden_size-{args.hidden_size}_updatesStep-{args.updates_per_step}_startSteps-{args.start_steps}_targetIntervall-{args.target_update_interval}_replaysize-{args.replay_size}")
+writer = SummaryWriter(f"selfplay-win/500updates_win{time_}_batch_size-{args.batch_size}_gamma-{args.gamma}_tau-{args.tau}_lr-{args.lr}_alpha-{args.alpha}_tuning-{args.automatic_entropy_tuning}_hidden_size-{args.hidden_size}_updatesStep-{args.updates_per_step}_startSteps-{args.start_steps}_targetIntervall-{args.target_update_interval}_replaysize-{args.replay_size}")
 
 # Memory
 # memory = PrioritizedReplay(args.replay_size)
@@ -57,6 +57,7 @@ memory = ReplayMemory(args.replay_size,args.seed)
 # Training Loop
 total_numsteps = 0
 updates = 0
+update_now = False
 
 
 o = env.reset()
@@ -115,10 +116,10 @@ for i_episode in itertools.count(1):
 
     # writer.add_scalar('reward/train', episode_reward, i_episode)
     print("Episode: {}, total numsteps: {}, episode steps: {}, reward: {}".format(i_episode, total_numsteps, episode_steps, round(episode_reward, 2)))
-
+    games_won = 0
     if i_episode % 13 == 0:
         avg_reward = 0.
-        episodes = 9
+        episodes = 11
         for k  in range(episodes):
             state = env.reset()
             episode_reward = 0
@@ -131,13 +132,17 @@ for i_episode in itertools.count(1):
                     a2 = opponent.select_action(obs_agent2, evaluate=True)
                 else:
                     a2 = basic_strong.act(obs_agent2)
-                next_state, reward, done, _ = env.step(np.hstack([action[0:4],a2[0:4]])) 
+                next_state, reward, done, info = env.step(np.hstack([action[0:4],a2[0:4]])) 
+                if info['winner']==1:
+                    games_won+=1
                 # env.render()
                 episode_reward += reward
 
 
                 state = next_state
             avg_reward += episode_reward
+        if games_won>6:
+            update_now = True
         avg_reward /= episodes
         last_avg = avg_reward
 
@@ -145,13 +150,16 @@ for i_episode in itertools.count(1):
         print("----------------------------------------")
         print("Test Episodes: {}, Avg. Reward: {}".format(episodes, round(avg_reward, 2)))
         print("----------------------------------------")
-    if i_episode%750==0:
+    if i_episode%500==0:
         time_ = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-        agent.save_model( "best_ofbest_models", "750updates_target", suffix=f"reward-{last_avg}_episode-"+str(i_episode)+f"_batch_size-{args.batch_size}_gamma-{args.gamma}_tau-{args.tau}_lr-{args.lr}_alpha-{args.alpha}_tuning-{args.automatic_entropy_tuning}_hidden_size-{args.hidden_size}_updatesStep-{args.updates_per_step}_startSteps-{args.start_steps}_targetIntervall-{args.target_update_interval}_replaysize-{args.replay_size}_t-{time_}")
-    if i_episode%750==0:
-        opponent.policy.load_state_dict(agent.policy.state_dict())
-        opponent.critic.load_state_dict(agent.critic.state_dict())
-        opponent.critic_target.load_state_dict(agent.critic_target.state_dict())
+        agent.save_model( "finalsW", "500updates_win", suffix=f"reward-{last_avg}_episode-"+str(i_episode)+f"_batch_size-{args.batch_size}_gamma-{args.gamma}_tau-{args.tau}_lr-{args.lr}_alpha-{args.alpha}_tuning-{args.automatic_entropy_tuning}_hidden_size-{args.hidden_size}_updatesStep-{args.updates_per_step}_startSteps-{args.start_steps}_targetIntervall-{args.target_update_interval}_replaysize-{args.replay_size}_t-{time_}")
+    if i_episode%500==0:
+        if update_now:
+            update_now=False
+            print('update')
+            opponent.policy.load_state_dict(agent.policy.state_dict())
+            opponent.critic.load_state_dict(agent.critic.state_dict())
+            opponent.critic_target.load_state_dict(agent.critic_target.state_dict())
 env.close()
 
 
