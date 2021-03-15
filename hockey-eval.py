@@ -14,6 +14,7 @@ from torch.utils.tensorboard import SummaryWriter
 from prio_replay_memory import PrioritizedReplay
 from replay_memory import ReplayMemory
 import copy 
+import os
 
 parser = argparse.ArgumentParser(description='Soft Actor-Critic Args')
 parser.add_argument('--env-name', default="Hockey")
@@ -38,23 +39,30 @@ args.cuda = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 env = h_env.HockeyEnv(mode=h_env.HockeyEnv.NORMAL)
 # Agent
+
+root = 'finals/'
+runs = sorted(os.listdir(root))
+runs = [r+'/' for r in runs]
 agent = SAC(env.observation_space.shape[0], env.action_space, args)
-
-# actor = "finals/tau1000/sac_actor_1000updates_hockey_reward-5.298743624008804_episode-80000_batch_size-8_gamma-0.97_tau-0.005_lr-0.0003_alpha-0.2_tuning-True_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-5_replaysize-10000000_t-2021-03-14_07-21-03"
-# critic = "finals/tau1000/sac_critic_1000updates_hockey_reward-5.298743624008804_episode-80000_batch_size-8_gamma-0.97_tau-0.005_lr-0.0003_alpha-0.2_tuning-True_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-5_replaysize-10000000_t-2021-03-14_07-21-03"
-
-
 opponent = SAC(env.observation_space.shape[0], env.action_space, args)
 
-actor = "finals/complex2/sac_actor_750updates_alpha_reward-0.4968667554674209_episode-6750_batch_size-8_gamma-0.97_tau-0.005_lr-0.0003_alpha-0.01_tuning-False_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-5_replaysize-10000000_t-2021-03-14_12-57-10"
-critic = "finals/complex2/sac_critic_750updates_alpha_reward-0.4968667554674209_episode-6750_batch_size-8_gamma-0.97_tau-0.005_lr-0.0003_alpha-0.01_tuning-False_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-5_replaysize-10000000_t-2021-03-14_12-57-10"
-target =  "finals/complex2/sac_target_750updates_alpha_reward-0.4968667554674209_episode-6750_batch_size-8_gamma-0.97_tau-0.005_lr-0.0003_alpha-0.01_tuning-False_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-5_replaysize-10000000_t-2021-03-14_12-57-10"
+player1= 0
+player2 =4
+basic1 = False
+basic2 = False
+print(f"{runs[player1]} vs {runs[player2]}")
+models1 = sorted(os.listdir(root+runs[player1]))
+actor = root+runs[player1]+models1[0]
+critic = root+runs[player1]+models1[1]
+target = root+runs[player1]+models1[2] if len(models1)==3 else None
 
-o_actor = "finals/alpha_advanced/sac_actor_500updates_hockey_reward--0.6738663011620487_episode-47000_batch_size-8_gamma-0.97_tau-0.005_lr.02_tuning-False_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-5_replaysize-10000000_t-2021-03-14_13-07-42"
-o_critic = "finals/alpha_advanced/sac_critic_500updates_hockey_reward--0.6738663011620487_episode-47000_batch_size-8_gamma-0.97_tau-0.005_l.02_tuning-False_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-5_replaysize-10000000_t-2021-03-14_13-07-42"
-# o_target = "finals/epsilon/sac_critic_target_750upd_eps_reward-0.6477312397284184_episode-7500_batch_size-8_gamma-0.97_tau-0.005_lr-0.0003_alpha-0.01_tuning-True_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-5_replaysize-10000000_t-2021-03-14_13-35-53"
-# opponent.load_model(actor,critic,target)
-agent.load_model(o_actor,o_critic)
+models2 = sorted(os.listdir(root+runs[player2]))
+o_actor = root+runs[player2]+models2[0]
+o_critic = root+runs[player2]+models2[1]
+o_target = root+runs[player2]+models2[2] if len(models2)==3 else None
+
+agent.load_model(actor,critic,target)
+opponent.load_model(o_actor,o_critic,o_target)
 
 
 basic = h_env.BasicOpponent(weak=False)
@@ -80,18 +88,24 @@ score_they = 0
 
 avg_reward = 0.
 episodes = 1000
-for _  in range(episodes):
+for i_episode  in range(episodes):
     state = env.reset()
     episode_reward = 0
     done = False
     won = None
+    print(f"Round {i_episode}")
     while not done:
-
-        # action = basic.act(state)
-        action = agent.select_action(state, evaluate=True)
         obs_agent2 = env.obs_agent_two()
-        a2 = basic.act(obs_agent2)
-        # a2 = opponent.select_action(obs_agent2, evaluate=True)
+
+        if basic1:
+            action = basic.act(state)
+        else:
+            action = agent.select_action(state, evaluate=True)
+        
+        if basic2:
+            a2 = basic.act(obs_agent2)
+        else:
+            a2 = opponent.select_action(obs_agent2, evaluate=True)
         
         next_state, reward, done, info = env.step(np.hstack([action[0:4],a2[0:4]])) 
         env.render()

@@ -14,6 +14,7 @@ from torch.utils.tensorboard import SummaryWriter
 from prio_replay_memory import PrioritizedReplay
 from replay_memory import ReplayMemory
 import copy
+import random
 
 parser = argparse.ArgumentParser(description='Soft Actor-Critic Args')
 parser.add_argument('--env-name', default="Hockey")
@@ -63,6 +64,7 @@ update_now = False
 o = env.reset()
 # _ = env.render()
 last_avg=0
+save_now = False 
 for i_episode in itertools.count(1):
     episode_reward = 0
     episode_steps = 0
@@ -71,7 +73,7 @@ for i_episode in itertools.count(1):
 
     while not done:
         # state = env.obs_agent_two()
-        if args.start_steps > total_numsteps:
+        if args.start_steps > total_numsteps or random.random() < 0.01:
             action = env.action_space.sample()  # Sample random action
         else:
             action = agent.select_action(state)  # Sample action from policy
@@ -114,7 +116,7 @@ for i_episode in itertools.count(1):
     if total_numsteps > args.num_steps:
         break
 
-    # writer.add_scalar('reward/train', episode_reward, i_episode)
+    writer.add_scalar('reward/train', episode_reward, i_episode)
     print("Episode: {}, total numsteps: {}, episode steps: {}, reward: {}".format(i_episode, total_numsteps, episode_steps, round(episode_reward, 2)))
     games_won = 0
     if i_episode % 13 == 0:
