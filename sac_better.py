@@ -89,7 +89,7 @@ class SAC(object):
             next_state_action, next_state_log_pi, next_state_mu = self.policy.sample(next_state_batch)
             q1_next_target, q2_next_target = self.critic_target(next_state_batch, next_state_action)
 
-            # sac v2 as in TD3 use min of critics to avoid overestiation
+            # sac v2 as in TD3 use min of critics to avoid overestimation
             min_q_next_target = torch.min(q1_next_target, q2_next_target) - self.alpha * next_state_log_pi
             next_q_value = reward_batch + mask_batch * self.gamma * (min_q_next_target)
 
@@ -167,9 +167,9 @@ class SAC(object):
     def load_model(self, actor_path, critic_path, target_path=None):
         print('Loading models from {} and {}'.format(actor_path, critic_path))
         if actor_path is not None:
-            self.policy.load_state_dict(torch.load(actor_path))
+            self.policy.load_state_dict(torch.load(actor_path,map_location=torch.device('cpu') ))
         if critic_path is not None:
-            self.critic.load_state_dict(torch.load(critic_path))
+            self.critic.load_state_dict(torch.load(critic_path,map_location=torch.device('cpu') ))
         if target_path is not None:
-            self.critic_target.load_state_dict(torch.load(target_path))
+            self.critic_target.load_state_dict(torch.load(target_path,map_location=torch.device('cpu') ))
 

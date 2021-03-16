@@ -91,7 +91,7 @@ def swap(data_sets, algorithm, i, j):
     return data_sets,algorithm
     
 def plot(data_sets, title, algorithm, label, dir,xlimit=31000):
-    # data_sets, algorithm = swap(data_sets,algorithm,0,2)
+    # data_sets, algorithm = swap(data_sets,algorithm,1,2)
     # data_sets, algorithm = swap(data_sets,algorithm,1,3)
     # data_sets, algorithm = swap(data_sets,algorithm,1,2)
 
@@ -132,22 +132,24 @@ def plot_i(data_sets, title, algorithm, label, dir,xlimit,figs):
         smoothed.plot(x='Environment Steps', y=label,alpha=1.0,color=color,ax = ax1,label=algorithm[0][idx],linewidth=2.0)
         
         # color = next(ax1._get_lines.prop_cycler)['color']
-        # plt.fill_between(data.values[...,0], smoothed.values[...,1]-std, smoothed.values[...,1]+std,color=color,alpha=0.5)
-        # plt.fill_between(data.values[...,0], smoothed.values[...,1]-std, smoothed.values[...,1]+std,color=color,alpha=0.5)
+        plt.fill_between(data.values[...,0], smoothed.values[...,1]-std, smoothed.values[...,1]+std,color=color,alpha=0.1)
+        plt.fill_between(data.values[...,0], smoothed.values[...,1]-std, smoothed.values[...,1]+std,color=color,alpha=0.1)
     
     extratick = [max_]
-    plt.yticks(list(plt.yticks()[0])[1:-2]+extratick)
+    plt.yticks(list(plt.yticks()[0])[1:-1]+extratick)
     ax.set_ylabel("avg reward")
     if figs==8:
         fsize=15
     else:
         fsize=15
     plt.title(title, fontsize=fsize)
+    plt.xticks(fontsize=15)
+    plt.yticks(fontsize=15)
     ax.yaxis.label.set_size(fsize)
     ax.xaxis.label.set_size(fsize)
 
     plt.legend(loc='lower right',fontsize=15)
-    # plt.ylim(bottom=-400) 
+    plt.ylim(bottom=-200) 
     
     if figs==8:
         plt.savefig(dir+title+'_square.svg', format='svg')
