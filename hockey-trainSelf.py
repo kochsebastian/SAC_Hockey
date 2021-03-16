@@ -69,8 +69,8 @@ time_ = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 writer = SummaryWriter(f"selfplay-comp/all_win{time_}_batch_size-{args.batch_size}_gamma-{args.gamma}_tau-{args.tau}_lr-{args.lr}_alpha-{args.alpha}_tuning-{args.automatic_entropy_tuning}_hidden_size-{args.hidden_size}_updatesStep-{args.updates_per_step}_startSteps-{args.start_steps}_targetIntervall-{args.target_update_interval}_replaysize-{args.replay_size}")
 
 # Memory
-# memory = PrioritizedReplay(args.replay_size)
-memory = ReplayMemory(args.replay_size,args.seed)
+memory = PrioritizedReplay(args.replay_size)
+# memory = ReplayMemory(args.replay_size,args.seed)
 
 # Training Loop
 total_numsteps = 0

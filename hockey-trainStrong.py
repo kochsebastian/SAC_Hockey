@@ -51,8 +51,8 @@ time_ = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 #Tesnorboard
 
 # Memory
-# memory = PrioritizedReplay(args.replay_size)
-memory = ReplayMemory(args.replay_size,args.seed)
+memory = PrioritizedReplay(args.replay_size)
+# memory = ReplayMemory(args.replay_size,args.seed)
 
 # Training Loop
 total_numsteps = 0
