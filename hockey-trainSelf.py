@@ -16,6 +16,8 @@ from replay_memory import ReplayMemory
 import copy
 import random
 
+import os
+
 parser = argparse.ArgumentParser(description='Soft Actor-Critic Args')
 parser.add_argument('--env-name', default="Hockey")
 parser.add_argument('--policy', default="Gaussian")
@@ -41,15 +43,30 @@ args.cuda =True if torch.cuda.is_available() else False
 env = h_env.HockeyEnv(mode=h_env.HockeyEnv.NORMAL)
 # Agent
 agent = SAC(env.observation_space.shape[0], env.action_space, args)
-actor = "finals/alpha/sac_actor_500updates_hockey_reward--0.20085748776545811_episode-33000_batch_size-8_gamma-0.97_tau-0.005_lr-0.0003_alpha-0.02_tuning-False_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-5_replaysize-10000000_t-2021-03-14_06-01-44"
-critic = "finals/alpha/sac_critic_500updates_hockey_reward--0.20085748776545811_episode-33000_batch_size-8_gamma-0.97_tau-0.005_lr-0.0003_alpha-0.02_tuning-False_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-5_replaysize-10000000_t-2021-03-14_06-01-44"
-
+actor = "competionW/sac_actor_all_win_reward-7.048826588216617_episode-2500_batch_size-8_gamma-0.97_tau-0.005_lr-0.0003_alpha-0.01_tuning-True_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-1000000_t-2021-03-16_02-30-46"
+critic = "competionW/sac_critic_all_win_reward-7.048826588216617_episode-2500_batch_size-8_gamma-0.97_tau-0.005_lr-0.0003_alpha-0.01_tuning-True_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-1000000_t-2021-03-16_02-30-46"
+target = "competionW/sac_target_all_win_reward-7.048826588216617_episode-2500_batch_size-8_gamma-0.97_tau-0.005_lr-0.0003_alpha-0.01_tuning-True_hidden_size-512_updatesStep-1_startSteps-10000_targetIntervall-1_replaysize-1000000_t-2021-03-16_02-30-46"
 agent.load_model(actor,critic)
 opponent = copy.deepcopy(agent)
+
+root = 'finals/'
+runs = sorted(os.listdir(root))
+runs = [r+'/' for r in runs]
+
+opponents = [SAC(env.observation_space.shape[0], env.action_space, args) for i in range(len(runs))]
+
+
+for i in range(len(opponents)):
+    models2 = sorted(os.listdir(root+runs[i]))
+    o_actor = root+runs[i]+models2[0]
+    o_critic = root+runs[i]+models2[1]
+    o_target = root+runs[i]+models2[2] if len(models2)==3 else None
+    opponents[i].load_model(o_actor,o_critic,o_target)
+
 basic_strong = h_env.BasicOpponent(weak=False)
 time_ = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 #Tesnorboard
-writer = SummaryWriter(f"selfplay-comp/500updates_win{time_}_batch_size-{args.batch_size}_gamma-{args.gamma}_tau-{args.tau}_lr-{args.lr}_alpha-{args.alpha}_tuning-{args.automatic_entropy_tuning}_hidden_size-{args.hidden_size}_updatesStep-{args.updates_per_step}_startSteps-{args.start_steps}_targetIntervall-{args.target_update_interval}_replaysize-{args.replay_size}")
+writer = SummaryWriter(f"selfplay-comp/all_win{time_}_batch_size-{args.batch_size}_gamma-{args.gamma}_tau-{args.tau}_lr-{args.lr}_alpha-{args.alpha}_tuning-{args.automatic_entropy_tuning}_hidden_size-{args.hidden_size}_updatesStep-{args.updates_per_step}_startSteps-{args.start_steps}_targetIntervall-{args.target_update_interval}_replaysize-{args.replay_size}")
 
 # Memory
 # memory = PrioritizedReplay(args.replay_size)
@@ -72,7 +89,7 @@ for i_episode in itertools.count(1):
     episode_steps = 0
     done = False
     state = env.reset()
-
+    opp = random.randint(-1, len(opponents)-1)
     while not done:
         # state = env.obs_agent_two()
         if args.start_steps > total_numsteps or random.random() < 0.1:
@@ -99,7 +116,12 @@ for i_episode in itertools.count(1):
         if i_episode % 5 != 0: # more selfplay
             a2 = opponent.select_action(obs_agent2, evaluate=True)
         else:
-            a2 = basic_strong.act(obs_agent2)
+
+            
+            if opp==-1:
+                a2 = basic_strong.act(obs_agent2)
+            else:
+                a2 = opponents[opp].select_action(obs_agent2,evaluate=True)
         next_state, reward, done, _ = env.step(np.hstack([action[0:4],a2[0:4]])) 
         # env.render()
         
@@ -128,6 +150,7 @@ for i_episode in itertools.count(1):
             state = env.reset()
             episode_reward = 0
             done = False
+            opp = random.randint(-1, len(opponents)-1)
             while not done:
                 
                 action = agent.select_action(state, evaluate=True)
@@ -135,7 +158,12 @@ for i_episode in itertools.count(1):
                 if k % 5 != 0: # more selfplay
                     a2 = opponent.select_action(obs_agent2, evaluate=True)
                 else:
-                    a2 = basic_strong.act(obs_agent2)
+                    
+                    
+                    if opp==-1:
+                        a2 = basic_strong.act(obs_agent2)
+                    else:
+                        a2 = opponents[opp].select_action(obs_agent2,evaluate=True)
                 next_state, reward, done, info = env.step(np.hstack([action[0:4],a2[0:4]])) 
                 if info['winner']==1:
                     games_won+=1
@@ -159,7 +187,7 @@ for i_episode in itertools.count(1):
         print("Test Episodes: {}, Avg. Reward: {}".format(episodes, round(avg_reward, 2)))
         print("Test Episodes: {}, Threshold. Reward: {}".format(episodes, round(threshold_avg/(number_avg), 2)))
         print("----------------------------------------")
-    if i_episode%500==0 and (threshold_avg/number_avg)>6:
+    if i_episode%500==0 and (threshold_avg/number_avg)>4.5:
         print('update')
         number_avg=0
         threshold_avg=0
@@ -171,7 +199,7 @@ for i_episode in itertools.count(1):
         threshold_avg=0
         number_avg=0
         time_ = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-        agent.save_model( "competionW", "500updates_win", suffix=f"reward-{last_avg}_episode-"+str(i_episode)+f"_batch_size-{args.batch_size}_gamma-{args.gamma}_tau-{args.tau}_lr-{args.lr}_alpha-{args.alpha}_tuning-{args.automatic_entropy_tuning}_hidden_size-{args.hidden_size}_updatesStep-{args.updates_per_step}_startSteps-{args.start_steps}_targetIntervall-{args.target_update_interval}_replaysize-{args.replay_size}_t-{time_}")
+        agent.save_model( "competionW", "all_win", suffix=f"reward-{last_avg}_episode-"+str(i_episode)+f"_batch_size-{args.batch_size}_gamma-{args.gamma}_tau-{args.tau}_lr-{args.lr}_alpha-{args.alpha}_tuning-{args.automatic_entropy_tuning}_hidden_size-{args.hidden_size}_updatesStep-{args.updates_per_step}_startSteps-{args.start_steps}_targetIntervall-{args.target_update_interval}_replaysize-{args.replay_size}_t-{time_}")
     
 env.close()
 

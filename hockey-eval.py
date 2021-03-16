@@ -46,8 +46,8 @@ runs = [r+'/' for r in runs]
 agent = SAC(env.observation_space.shape[0], env.action_space, args)
 opponent = SAC(env.observation_space.shape[0], env.action_space, args)
 
-player1= 3
-player2 =7
+player1= 0
+player2 =1
 basic1 = False
 basic2 = False
 print(f"{runs[player1]} vs {runs[player2]}")
