@@ -11,7 +11,7 @@ import itertools
 import torch
 from sac_better import SAC
 from torch.utils.tensorboard import SummaryWriter
-# from ere_prio_replay import PrioritizedReplay
+from prio_replay_memory import PrioritizedReplay
 from replay_memory import ReplayMemory
 import copy
 
@@ -52,8 +52,8 @@ time_ = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 writer = SummaryWriter(f"hockey-hidden-runs-defence/{time_}_batch_size-{args.batch_size}_gamma-{args.gamma}_tau-{args.tau}_lr-{args.lr}_alpha-{args.alpha}_tuning-{args.automatic_entropy_tuning}_hidden_size-{args.hidden_size}_updatesStep-{args.updates_per_step}_startSteps-{args.start_steps}_targetIntervall-{args.target_update_interval}_replaysize-{args.replay_size}")
 
 # Memory
-# memory = PrioritizedReplay(args.replay_size)
-memory = ReplayMemory(args.replay_size,args.seed)
+memory = PrioritizedReplay(args.replay_size)
+# memory = ReplayMemory(args.replay_size,args.seed)
 
 # Training Loop
 total_numsteps = 0
