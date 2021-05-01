@@ -46,10 +46,11 @@ runs = [r+'/' for r in runs]
 agent = SAC(env.observation_space.shape[0], env.action_space, args)
 opponent = SAC(env.observation_space.shape[0], env.action_space, args)
 
-player1= 0
-player2 =1
+player1= 1
+player2 =3
 basic1 = False
-basic2 = True
+basic2 = False
+# print(f"{runs[player1]} vs {runs[player2]}")
 print(f"{runs[player1]} vs {runs[player2]}")
 models1 = sorted(os.listdir(root+runs[player1]))
 actor = root+runs[player1]+models1[0]
