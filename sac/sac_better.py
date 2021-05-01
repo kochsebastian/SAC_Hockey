@@ -2,10 +2,10 @@ import os
 import torch
 import torch.nn.functional as F
 from torch.optim import Adam
-from policies import Actor
-from softqnetwork import Critic
-from ere_prio_replay import PrioritizedReplay as ERE_PrioritizedReplay
-from prio_replay_memory import PrioritizedReplay
+from .policies import Actor
+from .softqnetwork import Critic
+from .ere_prio_replay import PrioritizedReplay as ERE_PrioritizedReplay
+from .prio_replay_memory import PrioritizedReplay
 
 class SAC(object):
     def __init__(self, num_inputs, action_space, args):

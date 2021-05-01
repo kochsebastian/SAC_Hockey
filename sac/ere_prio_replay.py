@@ -1,7 +1,7 @@
 import random
 import numpy as np
 from collections import deque
-from prio_replay_memory import PrioritizedReplay as PRE_PrioritizedReplay
+from .prio_replay_memory import PrioritizedReplay as PRE_PrioritizedReplay
 
 # without sum tree
 class PrioritizedReplay(PRE_PrioritizedReplay):
