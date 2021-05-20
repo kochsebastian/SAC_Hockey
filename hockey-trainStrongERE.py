@@ -9,11 +9,11 @@ import datetime
 import gym
 import itertools
 import torch
-from sac_better import SAC
+from sac.sac_better import SAC
 from torch.utils.tensorboard import SummaryWriter
-from prio_replay_memory import PrioritizedReplay
-from ere_prio_replay import PrioritizedReplay as ERE_PrioritizedReplay
-from replay_memory import ReplayMemory
+from sac.prio_replay_memory import PrioritizedReplay
+from sac.ere_prio_replay import PrioritizedReplay as ERE_PrioritizedReplay
+from sac.replay_memory import ReplayMemory
 import copy
 
 parser = argparse.ArgumentParser(description='Soft Actor-Critic Args')

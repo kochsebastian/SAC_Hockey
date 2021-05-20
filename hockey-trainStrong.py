@@ -9,7 +9,7 @@ import datetime
 import gym
 import itertools
 import torch
-from sac_better import SAC
+from sac.sac_better import SAC
 from torch.utils.tensorboard import SummaryWriter
 from prio_replay_memory import PrioritizedReplay
 from ere_prio_replay import PrioritizedReplay as ERE_PrioritizedReplay
